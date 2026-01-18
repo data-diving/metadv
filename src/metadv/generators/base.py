@@ -34,12 +34,11 @@ class BaseGenerator(ABC):
             Rendered template string
         """
         template_file = self.template_path / template_name
-        with open(template_file, 'r', encoding='utf-8') as f:
+        with open(template_file, "r", encoding="utf-8") as f:
             template = Template(f.read())
         # Convert dicts/lists to JSON strings
         substitutions = {
-            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-            for k, v in kwargs.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in kwargs.items()
         }
         return template.substitute(substitutions)
 
@@ -48,7 +47,7 @@ class BaseGenerator(ABC):
         self,
         output_dir: Path,
         source_models: Dict[str, Dict[str, Any]],
-        targets_by_name: Dict[str, Dict[str, Any]]
+        targets_by_name: Dict[str, Dict[str, Any]],
     ) -> List[str]:
         """
         Generate SQL model files.
@@ -82,7 +81,7 @@ class BaseGenerator(ABC):
         stage_models = []
         seen_stages = set()
         for ref in source_refs:
-            stage_ref = self._get_stage_ref(ref['source'])
+            stage_ref = self._get_stage_ref(ref["source"])
             if stage_ref not in seen_stages:
                 stage_models.append(stage_ref)
                 seen_stages.add(stage_ref)

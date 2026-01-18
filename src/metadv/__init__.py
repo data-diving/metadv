@@ -32,8 +32,8 @@ except ImportError:
 
 # Supported Data Vault packages (in order of preference)
 SUPPORTED_DV_PACKAGES = [
-    'datavault-uk/automate_dv',
-    'scalefreecom/datavault4dbt',
+    "datavault-uk/automate_dv",
+    "scalefreecom/datavault4dbt",
 ]
 
 
@@ -52,20 +52,20 @@ def detect_installed_dv_package(project_path: Path) -> Optional[str]:
     if isinstance(project_path, str):
         project_path = Path(project_path)
 
-    for deps_filename in ['packages.yml', 'dependencies.yml']:
+    for deps_filename in ["packages.yml", "dependencies.yml"]:
         deps_file = project_path / deps_filename
         if deps_file.exists():
             try:
-                with open(deps_file, 'r', encoding='utf-8') as f:
+                with open(deps_file, "r", encoding="utf-8") as f:
                     deps_content = yaml.safe_load(f)
 
                 if not deps_content:
                     continue
 
-                packages = deps_content.get('packages', [])
+                packages = deps_content.get("packages", [])
                 for pkg in packages:
                     if isinstance(pkg, dict):
-                        pkg_name = pkg.get('package', '')
+                        pkg_name = pkg.get("package", "")
                         if pkg_name.lower() in [p.lower() for p in SUPPORTED_DV_PACKAGES]:
                             return pkg_name
             except Exception:
@@ -78,10 +78,10 @@ def detect_installed_dv_package(project_path: Path) -> Optional[str]:
 from .generator import MetaDVGenerator, validate_metadv, read_metadv
 
 __all__ = [
-    '__version__',
-    'detect_installed_dv_package',
-    'SUPPORTED_DV_PACKAGES',
-    'MetaDVGenerator',
-    'validate_metadv',
-    'read_metadv',
+    "__version__",
+    "detect_installed_dv_package",
+    "SUPPORTED_DV_PACKAGES",
+    "MetaDVGenerator",
+    "validate_metadv",
+    "read_metadv",
 ]

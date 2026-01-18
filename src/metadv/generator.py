@@ -34,6 +34,7 @@ from .validations import ValidationContext, ValidationMessage, run_validations
 @dataclass
 class ValidationResult:
     """Result of metadv.yml validation."""
+
     success: bool
     error: Optional[str] = None
     errors: List[ValidationMessage] = field(default_factory=list)
@@ -42,17 +43,18 @@ class ValidationResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'success': self.success,
-            'error': self.error,
-            'errors': [e.to_dict() for e in self.errors],
-            'warnings': [w.to_dict() for w in self.warnings],
-            'summary': self.summary
+            "success": self.success,
+            "error": self.error,
+            "errors": [e.to_dict() for e in self.errors],
+            "warnings": [w.to_dict() for w in self.warnings],
+            "summary": self.summary,
         }
 
 
 @dataclass
 class MetaDVData:
     """Parsed metadv.yml data."""
+
     targets: List[Dict[str, Any]]
     source_columns: List[Dict[str, Any]]
     raw: Dict[str, Any]
@@ -67,8 +69,8 @@ class MetaDVGenerator:
 
     # Supported packages and their macro prefixes
     PACKAGE_PREFIXES = {
-        'datavault-uk/automate_dv': 'automate_dv',
-        'scalefreecom/datavault4dbt': 'datavault4dbt',
+        "datavault-uk/automate_dv": "automate_dv",
+        "scalefreecom/datavault4dbt": "datavault4dbt",
     }
 
     def __init__(self, project_path: str, package_name: str):
@@ -86,8 +88,8 @@ class MetaDVGenerator:
         self._raw_content: Optional[Dict[str, Any]] = None
         self.package_name = package_name
         self.package_prefix = self.PACKAGE_PREFIXES.get(
-            self.package_name.lower() if self.package_name else '',
-            'automate_dv'  # Default fallback
+            self.package_name.lower() if self.package_name else "",
+            "automate_dv",  # Default fallback
         )
 
         # Initialize generators
@@ -114,85 +116,84 @@ class MetaDVGenerator:
             return False, "metadv.yml not found. Please initialize MetaDV first.", None
 
         try:
-            with open(self.metadv_yml_path, 'r', encoding='utf-8') as f:
+            with open(self.metadv_yml_path, "r", encoding="utf-8") as f:
                 content = yaml.safe_load(f)
 
             self._raw_content = content
 
             targets = []
-            metadv_section = content.get('metadv', {})
-            if metadv_section and 'targets' in metadv_section:
-                targets = metadv_section.get('targets', [])
+            metadv_section = content.get("metadv", {})
+            if metadv_section and "targets" in metadv_section:
+                targets = metadv_section.get("targets", [])
 
             source_columns = []
             # Sources are under metadv key (same as targets)
             # Each source has a name (model name) and columns directly
-            sources = metadv_section.get('sources', []) if metadv_section else []
+            sources = metadv_section.get("sources", []) if metadv_section else []
             for source in sources:
-                source_name = source.get('name', '')
-                columns = source.get('columns', [])
+                source_name = source.get("name", "")
+                columns = source.get("columns", [])
                 for column in columns:
-                    col_name = column.get('name', '')
+                    col_name = column.get("name", "")
 
                     # Unified structure: target array directly on column (no meta wrapper)
-                    target = column.get('target', None)
+                    target = column.get("target", None)
 
                     # Backwards compatibility: check for old meta-wrapped format
                     if target is None:
-                        meta = column.get('meta', {}) or {}
-                        target = meta.get('target', None)
+                        meta = column.get("meta", {}) or {}
+                        target = meta.get("target", None)
 
                         # Even older formats: entity_name/attribute_of as separate fields
                         if target is None:
                             target = []
 
                             # Old entity_name/entity_relation format
-                            old_entity_name = meta.get('entity_name', None)
-                            entity_name_index = meta.get('entity_name_index', None)
-                            entity_relation = meta.get('entity_relation', None)
+                            old_entity_name = meta.get("entity_name", None)
+                            entity_name_index = meta.get("entity_name_index", None)
+                            entity_relation = meta.get("entity_relation", None)
 
                             if old_entity_name is not None:
                                 if isinstance(old_entity_name, str):
                                     old_entity_name = [old_entity_name]
                                 for en in old_entity_name:
                                     if entity_relation:
-                                        target_entry = {'target_name': entity_relation, 'entity_name': en}
+                                        target_entry = {
+                                            "target_name": entity_relation,
+                                            "entity_name": en,
+                                        }
                                     else:
-                                        target_entry = {'target_name': en}
+                                        target_entry = {"target_name": en}
                                     if entity_name_index is not None:
-                                        target_entry['entity_index'] = entity_name_index
+                                        target_entry["entity_index"] = entity_name_index
                                     target.append(target_entry)
 
                             # Old attribute_of format (separate field)
-                            old_attribute_of = meta.get('attribute_of', None)
-                            old_target_attribute = meta.get('target_attribute', None)
-                            old_multiactive_key = meta.get('multiactive_key', None)
+                            old_attribute_of = meta.get("attribute_of", None)
+                            old_target_attribute = meta.get("target_attribute", None)
+                            old_multiactive_key = meta.get("multiactive_key", None)
 
                             if old_attribute_of is not None:
                                 # Handle both string and list formats
                                 if isinstance(old_attribute_of, str):
                                     old_attribute_of = [old_attribute_of]
                                 for attr_target in old_attribute_of:
-                                    attr_entry = {'attribute_of': attr_target}
+                                    attr_entry = {"attribute_of": attr_target}
                                     if old_target_attribute:
-                                        attr_entry['target_attribute'] = old_target_attribute
+                                        attr_entry["target_attribute"] = old_target_attribute
                                     if old_multiactive_key:
-                                        attr_entry['multiactive_key'] = True
+                                        attr_entry["multiactive_key"] = True
                                     target.append(attr_entry)
 
                     col_data = {
-                        'source': source_name,
-                        'column': col_name,
-                        'target': target if target else None
+                        "source": source_name,
+                        "column": col_name,
+                        "target": target if target else None,
                     }
 
                     source_columns.append(col_data)
 
-            self._data = MetaDVData(
-                targets=targets,
-                source_columns=source_columns,
-                raw=content
-            )
+            self._data = MetaDVData(targets=targets, source_columns=source_columns, raw=content)
 
             return True, None, self._data
 
@@ -210,19 +211,15 @@ class MetaDVGenerator:
         Returns a ValidationResult with errors and warnings.
         """
         if not self.project_path.exists():
-            return ValidationResult(
-                success=False,
-                error="Project path does not exist"
-            )
+            return ValidationResult(success=False, error="Project path does not exist")
 
         if not self.metadv_yml_path.exists():
             return ValidationResult(
-                success=False,
-                error="metadv.yml not found. Please initialize MetaDV first."
+                success=False, error="metadv.yml not found. Please initialize MetaDV first."
             )
 
         try:
-            with open(self.metadv_yml_path, 'r', encoding='utf-8') as f:
+            with open(self.metadv_yml_path, "r", encoding="utf-8") as f:
                 content = yaml.safe_load(f)
 
             # Build validation context
@@ -232,43 +229,40 @@ class MetaDVGenerator:
             messages = run_validations(ctx)
 
             # Separate errors and warnings
-            errors = [m for m in messages if m.type == 'error']
-            warnings = [m for m in messages if m.type == 'warning']
+            errors = [m for m in messages if m.type == "error"]
+            warnings = [m for m in messages if m.type == "warning"]
 
             return ValidationResult(
                 success=True,
                 errors=errors,
                 warnings=warnings,
                 summary={
-                    'total_targets': len(ctx.target_map),
-                    'total_columns': ctx.total_columns,
-                    'columns_with_connections': ctx.columns_with_connections,
-                    'error_count': len(errors),
-                    'warning_count': len(warnings)
-                }
+                    "total_targets": len(ctx.target_map),
+                    "total_columns": ctx.total_columns,
+                    "columns_with_connections": ctx.columns_with_connections,
+                    "error_count": len(errors),
+                    "warning_count": len(warnings),
+                },
             )
 
         except Exception as e:
-            return ValidationResult(
-                success=False,
-                error=str(e)
-            )
+            return ValidationResult(success=False, error=str(e))
 
     def _build_validation_context(self, content: Dict[str, Any]) -> ValidationContext:
         """Build ValidationContext from metadv.yml content."""
-        metadv_section = content.get('metadv', {}) or {}
-        targets = metadv_section.get('targets', []) or []
-        sources = metadv_section.get('sources', []) or []
+        metadv_section = content.get("metadv", {}) or {}
+        targets = metadv_section.get("targets", []) or []
+        sources = metadv_section.get("sources", []) or []
 
         # Build target map
         target_map: Dict[str, Dict[str, Any]] = {}
         for target in targets:
-            target_name = target.get('name', '')
-            target_type = target.get('type', 'entity')
+            target_name = target.get("name", "")
+            target_type = target.get("type", "entity")
             target_map[target_name] = {
-                'type': target_type,
-                'description': target.get('description'),
-                'entities': target.get('entities', [])
+                "type": target_type,
+                "description": target.get("description"),
+                "entities": target.get("entities", []),
             }
 
         # Track connections
@@ -280,8 +274,8 @@ class MetaDVGenerator:
         columns_with_connections = 0
 
         for source in sources:
-            source_name = source.get('name', '')
-            columns = source.get('columns', [])
+            source_name = source.get("name", "")
+            columns = source.get("columns", [])
 
             if source_name not in source_entity_connections:
                 source_entity_connections[source_name] = set()
@@ -295,57 +289,64 @@ class MetaDVGenerator:
                 has_connection = False
 
                 # Unified target array directly on column (no meta wrapper)
-                target = column.get('target')
+                target = column.get("target")
 
                 # Backwards compatibility: check for old meta-wrapped format
                 if target is None:
-                    meta = column.get('meta', {}) or {}
-                    target = meta.get('target')
+                    meta = column.get("meta", {}) or {}
+                    target = meta.get("target")
 
                     # Even older formats: entity_name/attribute_of as separate fields
                     if target is None:
                         target = []
                         # Old entity_name format
-                        old_entity_name = meta.get('entity_name')
-                        entity_relation = meta.get('entity_relation')
+                        old_entity_name = meta.get("entity_name")
+                        entity_relation = meta.get("entity_relation")
                         if old_entity_name:
                             if isinstance(old_entity_name, str):
                                 old_entity_name = [old_entity_name]
                             for en in old_entity_name:
                                 if entity_relation:
-                                    target.append({'target_name': entity_relation, 'entity_name': en})
+                                    target.append(
+                                        {"target_name": entity_relation, "entity_name": en}
+                                    )
                                 else:
-                                    target.append({'target_name': en})
+                                    target.append({"target_name": en})
                         # Old attribute_of format
-                        old_attribute_of = meta.get('attribute_of')
+                        old_attribute_of = meta.get("attribute_of")
                         if old_attribute_of:
                             if isinstance(old_attribute_of, str):
                                 old_attribute_of = [old_attribute_of]
                             for attr in old_attribute_of:
-                                target.append({'attribute_of': attr})
+                                target.append({"attribute_of": attr})
 
                 # Process unified target array
                 if target:
                     for target_conn in target:
                         # Check if this is an attribute connection
-                        if target_conn.get('attribute_of'):
+                        if target_conn.get("attribute_of"):
                             has_connection = True
                         # Or an entity/relation key connection
-                        elif target_conn.get('target_name'):
-                            target_name = target_conn.get('target_name')
-                            entity_name = target_conn.get('entity_name')
-                            entity_index = target_conn.get('entity_index')
+                        elif target_conn.get("target_name"):
+                            target_name = target_conn.get("target_name")
+                            entity_name = target_conn.get("entity_name")
+                            entity_index = target_conn.get("entity_index")
 
                             target_info = target_map.get(target_name, {})
-                            target_type = target_info.get('type', 'entity')
+                            target_type = target_info.get("type", "entity")
 
-                            if target_type == 'relation':
+                            if target_type == "relation":
                                 source_relation_connections[source_name].add(target_name)
                                 if entity_name:
                                     entity_sources.add(entity_name)
                                     source_entity_connections[source_name].add(entity_name)
-                                    if target_name not in source_relation_entity_positions[source_name]:
-                                        source_relation_entity_positions[source_name][target_name] = set()
+                                    if (
+                                        target_name
+                                        not in source_relation_entity_positions[source_name]
+                                    ):
+                                        source_relation_entity_positions[source_name][
+                                            target_name
+                                        ] = set()
                                     source_relation_entity_positions[source_name][target_name].add(
                                         (entity_name, entity_index)
                                     )
@@ -367,7 +368,7 @@ class MetaDVGenerator:
             source_relation_connections=source_relation_connections,
             source_relation_entity_positions=source_relation_entity_positions,
             total_columns=total_columns,
-            columns_with_connections=columns_with_connections
+            columns_with_connections=columns_with_connections,
         )
 
     def generate(self, output_path: Optional[str] = None) -> Tuple[bool, Optional[str], List[str]]:
@@ -408,35 +409,37 @@ class MetaDVGenerator:
             self._cleanup_generated_folders(output_dir)
 
             # Build data structures for generation
-            targets_by_name = {t['name']: t for t in data.targets}
+            targets_by_name = {t["name"]: t for t in data.targets}
 
             # Group source columns by source (model name)
             source_models: Dict[str, Dict[str, Any]] = {}
             for col in data.source_columns:
-                source_name = col['source']
+                source_name = col["source"]
                 if source_name not in source_models:
                     source_models[source_name] = {
-                        'source': source_name,
-                        'columns': [],
-                        'connected_targets': set()
+                        "source": source_name,
+                        "columns": [],
+                        "connected_targets": set(),
                     }
-                source_models[source_name]['columns'].append(col)
+                source_models[source_name]["columns"].append(col)
 
                 # Track connected targets from the unified target array structure
-                if col.get('target'):
-                    for target_conn in col['target']:
+                if col.get("target"):
+                    for target_conn in col["target"]:
                         # Entity/relation key connection
-                        target_name = target_conn.get('target_name')
-                        entity_name = target_conn.get('entity_name')  # Only for relation connections
+                        target_name = target_conn.get("target_name")
+                        entity_name = target_conn.get(
+                            "entity_name"
+                        )  # Only for relation connections
                         if target_name:
-                            source_models[source_name]['connected_targets'].add(target_name)
+                            source_models[source_name]["connected_targets"].add(target_name)
                         # Also track the entity for relation connections
                         if entity_name:
-                            source_models[source_name]['connected_targets'].add(entity_name)
+                            source_models[source_name]["connected_targets"].add(entity_name)
                         # Attribute connection
-                        attr_target = target_conn.get('attribute_of')
+                        attr_target = target_conn.get("attribute_of")
                         if attr_target:
-                            source_models[source_name]['connected_targets'].add(attr_target)
+                            source_models[source_name]["connected_targets"].add(attr_target)
 
             # 1. Generate stage models
             stage_files = self._stage_generator.generate(output_dir, source_models, targets_by_name)
@@ -461,17 +464,19 @@ class MetaDVGenerator:
 
     def _cleanup_generated_folders(self, output_dir: Path) -> None:
         """Delete all files in stage, hub, link, and sat folders before regenerating."""
-        folders_to_clean = ['stage', 'hub', 'link', 'sat']
+        folders_to_clean = ["stage", "hub", "link", "sat"]
 
         for folder_name in folders_to_clean:
             folder_path = output_dir / folder_name
             if folder_path.exists() and folder_path.is_dir():
                 # Remove all .sql files in the folder
-                for sql_file in folder_path.glob('*.sql'):
+                for sql_file in folder_path.glob("*.sql"):
                     sql_file.unlink()
 
 
-def validate_metadv(project_path: str, package_name: str = 'datavault-uk/automate_dv') -> Dict[str, Any]:
+def validate_metadv(
+    project_path: str, package_name: str = "datavault-uk/automate_dv"
+) -> Dict[str, Any]:
     """
     Convenience function for validating metadv.yml.
 
@@ -489,7 +494,9 @@ def validate_metadv(project_path: str, package_name: str = 'datavault-uk/automat
     return result.to_dict()
 
 
-def read_metadv(project_path: str, package_name: str = 'datavault-uk/automate_dv') -> Dict[str, Any]:
+def read_metadv(
+    project_path: str, package_name: str = "datavault-uk/automate_dv"
+) -> Dict[str, Any]:
     """
     Convenience function for reading metadv.yml.
 
@@ -504,28 +511,20 @@ def read_metadv(project_path: str, package_name: str = 'datavault-uk/automate_dv
     success, error, data = generator.read()
 
     if not success:
-        return {
-            'success': False,
-            'error': error,
-            'data': None
-        }
+        return {"success": False, "error": error, "data": None}
 
     return {
-        'success': True,
-        'error': None,
-        'data': {
-            'targets': data.targets,
-            'source_columns': data.source_columns,
-            'raw': data.raw
-        },
-        'path': str(generator.metadv_yml_path)
+        "success": True,
+        "error": None,
+        "data": {"targets": data.targets, "source_columns": data.source_columns, "raw": data.raw},
+        "path": str(generator.metadv_yml_path),
     }
 
 
 def main():
     """CLI entry point for standalone execution."""
     parser = argparse.ArgumentParser(
-        description='MetaDV Generator - Generate SQL models from metadv.yml',
+        description="MetaDV Generator - Generate SQL models from metadv.yml",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -533,43 +532,33 @@ Examples:
   %(prog)s /path/to/dbt/project --package scalefreecom/datavault4dbt
   %(prog)s /path/to/dbt/project --package datavault-uk/automate_dv --validate-only
   %(prog)s /path/to/dbt/project --package datavault-uk/automate_dv --output ./output
-        """
+        """,
     )
 
-    parser.add_argument(
-        'project_path',
-        help='Path to the dbt project root directory'
-    )
+    parser.add_argument("project_path", help="Path to the dbt project root directory")
 
     parser.add_argument(
-        '--package', '-p',
+        "--package",
+        "-p",
         required=True,
-        choices=['datavault-uk/automate_dv', 'scalefreecom/datavault4dbt'],
-        help='Data Vault package to use for SQL generation'
+        choices=["datavault-uk/automate_dv", "scalefreecom/datavault4dbt"],
+        help="Data Vault package to use for SQL generation",
     )
 
     parser.add_argument(
-        '--validate-only', '-v',
-        action='store_true',
-        help='Only validate metadv.yml without generating SQL models'
+        "--validate-only",
+        "-v",
+        action="store_true",
+        help="Only validate metadv.yml without generating SQL models",
     )
 
-    parser.add_argument(
-        '--output', '-o',
-        help='Custom output directory for generated SQL files'
-    )
+    parser.add_argument("--output", "-o", help="Custom output directory for generated SQL files")
 
     parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Show detailed output including warnings'
+        "--verbose", action="store_true", help="Show detailed output including warnings"
     )
 
-    parser.add_argument(
-        '--json',
-        action='store_true',
-        help='Output results in JSON format'
-    )
+    parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     args = parser.parse_args()
 
@@ -580,10 +569,15 @@ Examples:
     if not generator.exists():
         if args.json:
             import json
-            print(json.dumps({
-                'success': False,
-                'error': f"metadv.yml not found at {generator.metadv_yml_path}"
-            }))
+
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"metadv.yml not found at {generator.metadv_yml_path}",
+                    }
+                )
+            )
         else:
             print(f"Error: metadv.yml not found at {generator.metadv_yml_path}")
         sys.exit(1)
@@ -594,6 +588,7 @@ Examples:
     if args.validate_only:
         if args.json:
             import json
+
             print(json.dumps(validation.to_dict(), indent=2))
         else:
             print(f"\nValidation Results for: {generator.metadv_yml_path}")
@@ -636,12 +631,18 @@ Examples:
 
     if args.json:
         import json
-        print(json.dumps({
-            'success': success,
-            'error': error,
-            'generated_files': files,
-            'validation': validation.to_dict()
-        }, indent=2))
+
+        print(
+            json.dumps(
+                {
+                    "success": success,
+                    "error": error,
+                    "generated_files": files,
+                    "validation": validation.to_dict(),
+                },
+                indent=2,
+            )
+        )
     else:
         if not success:
             print(f"Error: {error}")
@@ -654,5 +655,5 @@ Examples:
     sys.exit(0 if success else 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

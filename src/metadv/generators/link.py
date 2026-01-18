@@ -13,7 +13,7 @@ class LinkGenerator(BaseGenerator):
         self,
         output_dir: Path,
         source_models: Dict[str, Dict[str, Any]],
-        targets_by_name: Dict[str, Dict[str, Any]]
+        targets_by_name: Dict[str, Dict[str, Any]],
     ) -> List[str]:
         """Generate link models - one per relation target."""
         link_dir = output_dir / "link"
@@ -22,15 +22,15 @@ class LinkGenerator(BaseGenerator):
         generated_files: List[str] = []
 
         for target_name, target_info in targets_by_name.items():
-            if target_info.get('type') != 'relation':
+            if target_info.get("type") != "relation":
                 continue
 
-            entities = target_info.get('entities', [])
+            entities = target_info.get("entities", [])
             if not entities:
                 continue
 
             # Create filename from entities
-            entities_suffix = '_'.join(entities)
+            entities_suffix = "_".join(entities)
             filename = f"link_{entities_suffix}.sql"
             filepath = link_dir / filename
 
@@ -42,12 +42,10 @@ class LinkGenerator(BaseGenerator):
                 continue
 
             sql_content = self.render_sql(
-                link_name=target_name,
-                entities=entities,
-                source_refs=source_refs
+                link_name=target_name, entities=entities, source_refs=source_refs
             )
 
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(sql_content)
 
             generated_files.append(str(filepath))
@@ -55,10 +53,7 @@ class LinkGenerator(BaseGenerator):
         return generated_files
 
     def _find_link_sources(
-        self,
-        relation_name: str,
-        entities: List[str],
-        source_models: Dict[str, Dict[str, Any]]
+        self, relation_name: str, entities: List[str], source_models: Dict[str, Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Find source models that are explicitly connected to this relation."""
         sources = []
@@ -67,34 +62,30 @@ class LinkGenerator(BaseGenerator):
             entity_columns = {}
             is_connected_to_relation = False
 
-            for col in source_info['columns']:
+            for col in source_info["columns"]:
                 # New structure: target is an array of dicts with target_name, entity_name
-                if col.get('target'):
-                    for target_conn in col['target']:
-                        target_name = target_conn.get('target_name')
-                        entity_name = target_conn.get('entity_name')  # Only for relation connections
+                if col.get("target"):
+                    for target_conn in col["target"]:
+                        target_name = target_conn.get("target_name")
+                        entity_name = target_conn.get(
+                            "entity_name"
+                        )  # Only for relation connections
 
                         # Only count connections that explicitly target THIS relation
                         if target_name == relation_name and entity_name:
                             is_connected_to_relation = True
                             if entity_name not in entity_columns:
                                 entity_columns[entity_name] = []
-                            entity_columns[entity_name].append(col['column'])
+                            entity_columns[entity_name].append(col["column"])
 
             # Only include if this source is explicitly connected to the relation
             if is_connected_to_relation:
-                sources.append({
-                    'source': source_name,
-                    'entity_columns': entity_columns
-                })
+                sources.append({"source": source_name, "entity_columns": entity_columns})
 
         return sources
 
     def render_sql(
-        self,
-        link_name: str,
-        entities: List[str],
-        source_refs: List[Dict[str, Any]]
+        self, link_name: str, entities: List[str], source_refs: List[Dict[str, Any]]
     ) -> str:
         """Render SQL content for a link model using template."""
         source_models = self._get_unique_stage_models(source_refs)
@@ -109,15 +100,12 @@ class LinkGenerator(BaseGenerator):
         for i, entity in enumerate(entities):
             if is_self_link:
                 # Self-link: {link_name}_{entity}_{seq}_hk
-                seq = entities[:i+1].count(entity)
+                seq = entities[: i + 1].count(entity)
                 fk_columns.append(f"{link_name}_{entity}_{seq}_hk")
             else:
                 # Regular link: {link_name}_{entity}_hk
                 fk_columns.append(f"{link_name}_{entity}_hk")
 
         return self.render_template(
-            'link.sql',
-            link_name=link_name,
-            source_models=source_models,
-            fk_columns=fk_columns
+            "link.sql", link_name=link_name, source_models=source_models, fk_columns=fk_columns
         )

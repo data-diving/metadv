@@ -8,21 +8,19 @@ from typing import Any, Dict, List, Set
 @dataclass
 class ValidationMessage:
     """A single validation message (error or warning)."""
+
     type: str  # 'error' or 'warning'
     code: str
     message: str
 
     def to_dict(self) -> Dict[str, str]:
-        return {
-            'type': self.type,
-            'code': self.code,
-            'message': self.message
-        }
+        return {"type": self.type, "code": self.code, "message": self.message}
 
 
 @dataclass
 class ValidationContext:
     """Context data available to all validators."""
+
     # Raw content from metadv.yml
     content: Dict[str, Any]
 

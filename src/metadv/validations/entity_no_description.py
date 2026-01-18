@@ -14,15 +14,17 @@ class EntityNoDescriptionValidator(BaseValidator):
         messages = []
 
         for target_name, target_info in ctx.target_map.items():
-            target_type = target_info.get('type', 'entity')
-            description = target_info.get('description')
+            target_type = target_info.get("type", "entity")
+            description = target_info.get("description")
 
             # Only check entities, not relations
-            if target_type == 'entity' and not description:
-                messages.append(ValidationMessage(
-                    type='warning',
-                    code='entity_no_description',
-                    message=f"Entity '{target_name}' has no description"
-                ))
+            if target_type == "entity" and not description:
+                messages.append(
+                    ValidationMessage(
+                        type="warning",
+                        code="entity_no_description",
+                        message=f"Entity '{target_name}' has no description",
+                    )
+                )
 
         return messages

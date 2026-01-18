@@ -22,7 +22,7 @@ class SourceMissingRelationEntitiesValidator(BaseValidator):
 
             for relation_name in connected_relations:
                 relation_info = ctx.target_map.get(relation_name, {})
-                required_entities = relation_info.get('entities', [])
+                required_entities = relation_info.get("entities", [])
 
                 # Get the positions connected for this source and relation
                 connected_positions = source_positions.get(relation_name, set())
@@ -37,28 +37,33 @@ class SourceMissingRelationEntitiesValidator(BaseValidator):
                     for i, entity in enumerate(required_entities):
                         # Check if this specific position (entity, index) is connected
                         position_connected = any(
-                            pos[0] == entity and pos[1] == i
-                            for pos in connected_positions
+                            pos[0] == entity and pos[1] == i for pos in connected_positions
                         )
                         if not position_connected:
                             missing_positions.append(f"{entity} (position {i + 1})")
 
                     if missing_positions:
-                        messages.append(ValidationMessage(
-                            type='error',
-                            code='source_missing_relation_entities',
-                            message=f"Source '{source_name}' is connected to relation '{relation_name}' but is missing entity columns for: {', '.join(missing_positions)}"
-                        ))
+                        messages.append(
+                            ValidationMessage(
+                                type="error",
+                                code="source_missing_relation_entities",
+                                message=f"Source '{source_name}' is connected to relation '{relation_name}' but is missing entity columns for: {', '.join(missing_positions)}",
+                            )
+                        )
                 else:
                     # For regular relations, just check entity names
                     connected_entity_names = {pos[0] for pos in connected_positions}
-                    missing_entities = [e for e in required_entities if e not in connected_entity_names]
+                    missing_entities = [
+                        e for e in required_entities if e not in connected_entity_names
+                    ]
 
                     if missing_entities:
-                        messages.append(ValidationMessage(
-                            type='error',
-                            code='source_missing_relation_entities',
-                            message=f"Source '{source_name}' is connected to relation '{relation_name}' but is missing entity columns for: {', '.join(missing_entities)}"
-                        ))
+                        messages.append(
+                            ValidationMessage(
+                                type="error",
+                                code="source_missing_relation_entities",
+                                message=f"Source '{source_name}' is connected to relation '{relation_name}' but is missing entity columns for: {', '.join(missing_entities)}",
+                            )
+                        )
 
         return messages

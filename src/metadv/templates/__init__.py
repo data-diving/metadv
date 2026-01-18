@@ -32,5 +32,5 @@ def load_template(package: str, template_name: str) -> str:
         Template content as string
     """
     template_path = get_template_path(package, template_name)
-    with open(template_path, 'r', encoding='utf-8') as f:
+    with open(template_path, "r", encoding="utf-8") as f:
         return f.read()

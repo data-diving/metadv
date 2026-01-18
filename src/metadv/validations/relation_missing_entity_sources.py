@@ -22,18 +22,20 @@ class RelationMissingEntitySourcesValidator(BaseValidator):
 
         # Check each relation target
         for target_name, target_info in ctx.target_map.items():
-            target_type = target_info.get('type', 'entity')
+            target_type = target_info.get("type", "entity")
 
             # Only check relation targets
-            if target_type != 'relation':
+            if target_type != "relation":
                 continue
 
             # Warn if relation has no sources connected at all
             if target_name not in relations_with_sources:
-                messages.append(ValidationMessage(
-                    type='warning',
-                    code='relation_no_sources',
-                    message=f"Relation target '{target_name}' has no source columns connected to it"
-                ))
+                messages.append(
+                    ValidationMessage(
+                        type="warning",
+                        code="relation_no_sources",
+                        message=f"Relation target '{target_name}' has no source columns connected to it",
+                    )
+                )
 
         return messages

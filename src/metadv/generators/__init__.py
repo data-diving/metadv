@@ -8,4 +8,4 @@ from .hub import HubGenerator
 from .link import LinkGenerator
 from .sat import SatGenerator
 
-__all__ = ['StageGenerator', 'HubGenerator', 'LinkGenerator', 'SatGenerator']
+__all__ = ["StageGenerator", "HubGenerator", "LinkGenerator", "SatGenerator"]

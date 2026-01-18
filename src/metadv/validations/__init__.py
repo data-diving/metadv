@@ -42,17 +42,19 @@ def discover_validators() -> List[Type[BaseValidator]]:
 
     # Iterate through all modules in the validations package
     for module_info in pkgutil.iter_modules([str(package_path)]):
-        if module_info.name.startswith('_') or module_info.name == 'base':
+        if module_info.name.startswith("_") or module_info.name == "base":
             continue
 
         # Import the module
-        module = importlib.import_module(f'.{module_info.name}', package=__name__)
+        module = importlib.import_module(f".{module_info.name}", package=__name__)
 
         # Find all classes that inherit from BaseValidator
         for name, obj in inspect.getmembers(module, inspect.isclass):
-            if (issubclass(obj, BaseValidator) and
-                obj is not BaseValidator and
-                obj.__module__ == module.__name__):
+            if (
+                issubclass(obj, BaseValidator)
+                and obj is not BaseValidator
+                and obj.__module__ == module.__name__
+            ):
                 validators.append(obj)
 
     return validators
@@ -79,9 +81,9 @@ def run_validations(ctx: ValidationContext) -> List[ValidationMessage]:
 
 
 __all__ = [
-    'BaseValidator',
-    'ValidationContext',
-    'ValidationMessage',
-    'discover_validators',
-    'run_validations',
+    "BaseValidator",
+    "ValidationContext",
+    "ValidationMessage",
+    "discover_validators",
+    "run_validations",
 ]

@@ -13,7 +13,7 @@ class StageGenerator(BaseGenerator):
         self,
         output_dir: Path,
         source_models: Dict[str, Dict[str, Any]],
-        targets_by_name: Dict[str, Dict[str, Any]]
+        targets_by_name: Dict[str, Dict[str, Any]],
     ) -> List[str]:
         """Generate stage models - one per source model with target connections."""
         stage_dir = output_dir / "stage"
@@ -22,20 +22,18 @@ class StageGenerator(BaseGenerator):
         generated_files: List[str] = []
 
         for source_name, source_info in source_models.items():
-            if not source_info['connected_targets']:
+            if not source_info["connected_targets"]:
                 continue  # Skip sources with no connections
 
             filename = f"stg_{source_name}.sql"
             filepath = stage_dir / filename
 
-            columns = source_info['columns']
+            columns = source_info["columns"]
             sql_content = self.render_sql(
-                source_name=source_name,
-                columns=columns,
-                targets_by_name=targets_by_name
+                source_name=source_name, columns=columns, targets_by_name=targets_by_name
             )
 
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(sql_content)
 
             generated_files.append(str(filepath))
@@ -46,7 +44,7 @@ class StageGenerator(BaseGenerator):
         self,
         source_name: str,
         columns: List[Dict[str, Any]],
-        targets_by_name: Dict[str, Dict[str, Any]]
+        targets_by_name: Dict[str, Dict[str, Any]],
     ) -> str:
         """Render SQL content for a stage model using template."""
         # Build derived_columns: maps output column name -> source column
@@ -59,31 +57,31 @@ class StageGenerator(BaseGenerator):
         relation_entity_columns: Dict[str, List[str]] = {}
 
         for col in columns:
-            col_name = col['column']
+            col_name = col["column"]
 
             # New structure: target is an array of dicts with target_name, entity_name (for relations), entity_index
-            if col.get('target'):
-                for target_conn in col['target']:
-                    target_name = target_conn.get('target_name')
-                    entity_name = target_conn.get('entity_name')  # Only for relation connections
-                    entity_index = target_conn.get('entity_index')
+            if col.get("target"):
+                for target_conn in col["target"]:
+                    target_name = target_conn.get("target_name")
+                    entity_name = target_conn.get("entity_name")  # Only for relation connections
+                    entity_index = target_conn.get("entity_index")
 
                     if not target_name:
                         continue
 
                     target_info = targets_by_name.get(target_name, {})
-                    target_type = target_info.get('type', 'entity')
+                    target_type = target_info.get("type", "entity")
 
-                    if target_type == 'entity':
+                    if target_type == "entity":
                         # Entity target: {entity}_id, {entity}_hk
                         derived_columns[f"{target_name}_id"] = col_name
                         if f"{target_name}_hk" not in hashed_columns:
                             hashed_columns[f"{target_name}_hk"] = []
                         hashed_columns[f"{target_name}_hk"].append(col_name)
 
-                    elif target_type == 'relation':
+                    elif target_type == "relation":
                         # Relation target: target_name is the relation, entity_name is the entity
-                        entities = target_info.get('entities', [])
+                        entities = target_info.get("entities", [])
 
                         # entity_name identifies which entity this column provides for the relation
                         if entity_name and entity_name in entities:
@@ -122,18 +120,18 @@ class StageGenerator(BaseGenerator):
         # Attribute connections are entries with 'attribute_of' key
         hashdiff_columns: Dict[str, List[str]] = {}
         for col in columns:
-            if col.get('target'):
-                for target_conn in col['target']:
-                    attr_target = target_conn.get('attribute_of')
+            if col.get("target"):
+                for target_conn in col["target"]:
+                    attr_target = target_conn.get("attribute_of")
                     if attr_target:
                         if attr_target not in hashdiff_columns:
                             hashdiff_columns[attr_target] = []
-                        hashdiff_columns[attr_target].append(col['column'])
+                        hashdiff_columns[attr_target].append(col["column"])
 
         return self.render_template(
-            'stage.sql',
+            "stage.sql",
             source_name=source_name,
             derived_columns=derived_columns,
             hashed_columns=hashed_columns,
-            hashdiff_columns=hashdiff_columns
+            hashdiff_columns=hashdiff_columns,
         )
