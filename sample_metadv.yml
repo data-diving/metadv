@@ -1,0 +1,128 @@
+# MetaDV Sample Configuration
+# ============================
+# This file demonstrates the metadv.yml structure for defining Data Vault models.
+#
+# Key Concepts:
+# - targets: Define your Data Vault entities (Hubs) and relations (Links)
+# - sources: Map your staging model columns to targets
+#
+# Connection Types (in the target array):
+# - target_name: Links a column to a target entity/relation (becomes a Hub/Link key)
+# - attribute_of: Links a column as an attribute of a target (becomes Satellite payload)
+# - multiactive_key: Marks a column as a multiactive key (for multiactive satellites)
+
+metadv:
+  targets:
+    # Entity: a business object (generates Hub + Satellite)
+    - name: customer
+      type: entity
+      description: Customer business entity
+
+    - name: product
+      type: entity
+      description: Product business entity
+
+    # Relation: links between entities (generates Link + Satellite)
+    - name: customer_product
+      type: relation
+      description: Customer to product purchase relationship
+      entities:
+        - customer
+        - product
+
+    # Self-link: same entity appears twice (e.g., referrer -> referred)
+    - name: customer_referral
+      type: relation
+      description: Customer referral relationship
+      entities:
+        - customer  # Index 0: referrer
+        - customer  # Index 1: referred
+
+  sources:
+    - name: stg_customers  # Must be an existing dbt model
+      columns:
+        # Entity key connection: identifies a business entity (Hub key)
+        - name: customer_id
+          target:
+            - target_name: customer
+
+        # Attributes: descriptive data stored in Satellite
+        - name: customer_name
+          target:
+            - attribute_of: customer
+
+        - name: customer_email
+          target:
+            - attribute_of: customer
+
+        # Multiple phone numbers per customer - use multiactive satellite
+        - name: phone_type
+          target:
+            - attribute_of: customer
+              multiactive_key: true  # This column distinguishes phone records
+
+        - name: phone_number
+          target:
+            - attribute_of: customer
+
+    - name: stg_products
+      columns:
+        - name: product_id
+          target:
+            - target_name: product
+
+        - name: product_name
+          target:
+            - attribute_of: product
+
+        - name: product_price
+          target:
+            - attribute_of: product
+
+    - name: stg_purchases
+      columns:
+        # Link to customer entity within the customer_product relation
+        - name: customer_id
+          target:
+            - target_name: customer_product
+              entity_name: customer
+
+        # Link to product entity within the customer_product relation
+        - name: product_id
+          target:
+            - target_name: customer_product
+              entity_name: product
+
+        # Attributes of the relation (Link Satellite)
+        - name: purchase_date
+          target:
+            - attribute_of: customer_product
+
+        - name: quantity
+          target:
+            - attribute_of: customer_product
+
+    - name: stg_referrals
+      columns:
+        # Self-link: use entity_index to specify which position in the relation
+        # Index 0 = first entity in the relation (referrer)
+        - name: referrer_id
+          target:
+            - target_name: customer_referral
+              entity_name: customer
+              entity_index: 0
+
+        # Index 1 = second entity in the relation (referred)
+        - name: referred_id
+          target:
+            - target_name: customer_referral
+              entity_name: customer
+              entity_index: 1
+
+        - name: referral_date
+          target:
+            - attribute_of: customer_referral
+
+        - name: referral_bonus
+          target:
+            - attribute_of: customer_referral
