@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from metadv import MetaDVGenerator, SUPPORTED_DV_PACKAGES
+from metadv import SUPPORTED_DV_PACKAGES, MetaDVGenerator
 
 
 @pytest.fixture

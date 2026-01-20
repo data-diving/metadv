@@ -1,6 +1,7 @@
 """Validation: Check that all source columns have connections."""
 
 from typing import List
+
 from .base import BaseValidator, ValidationContext, ValidationMessage
 
 

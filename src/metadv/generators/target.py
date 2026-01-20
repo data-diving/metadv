@@ -1,7 +1,7 @@
 """Target generator - generates models for entity and relation targets."""
 
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from .base import BaseGenerator
 

@@ -17,13 +17,13 @@ Or if running from the metadv folder directly:
 
 import argparse
 import sys
-from pathlib import Path
-from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from .generators import TargetGenerator, SourceTargetGenerator, SourceGenerator
+from .generators import SourceGenerator, SourceTargetGenerator, TargetGenerator
 from .validations import ValidationContext, ValidationMessage, run_validations
 
 

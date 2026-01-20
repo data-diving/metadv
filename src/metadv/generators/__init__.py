@@ -6,8 +6,8 @@ This module provides domain-based SQL generators:
 - SourceGenerator: One file per source (stage)
 """
 
-from .target import TargetGenerator
-from .source_target import SourceTargetGenerator
 from .source import SourceGenerator
+from .source_target import SourceTargetGenerator
+from .target import TargetGenerator
 
 __all__ = ["TargetGenerator", "SourceTargetGenerator", "SourceGenerator"]

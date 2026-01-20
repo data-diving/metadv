@@ -1,7 +1,7 @@
 """Source-target generator - generates models for source-target pairs."""
 
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from .base import BaseGenerator
 

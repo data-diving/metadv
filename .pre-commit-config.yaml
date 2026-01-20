@@ -5,3 +5,9 @@ repos:
     rev: 24.4.0
     hooks:
       - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--resolve-all-configs]

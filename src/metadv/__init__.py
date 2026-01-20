@@ -75,7 +75,7 @@ def detect_installed_dv_package(project_path: Path) -> Optional[str]:
 
 
 # Import generator components
-from .generator import MetaDVGenerator, validate_metadv, read_metadv
+from .generator import MetaDVGenerator, read_metadv, validate_metadv
 
 __all__ = [
     "__version__",
