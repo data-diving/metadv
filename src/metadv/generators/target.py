@@ -85,20 +85,27 @@ class TargetGenerator(BaseGenerator):
         """Build template context for an entity (hub/dimension)."""
         source_refs = []
         for source_name, source_info in source_models.items():
+            key_column = None
+            attributes = []
+
             for col in source_info["columns"]:
                 if col.get("target"):
                     for target_conn in col["target"]:
+                        # Key column for this entity
                         if target_conn.get("target_name") == entity_name:
-                            # Include all column names from this source for UNION ALL handling
-                            all_columns = [c["column"] for c in source_info["columns"]]
-                            source_refs.append(
-                                {
-                                    "source": source_name,
-                                    "column": col["column"],
-                                    "all_columns": all_columns,
-                                }
-                            )
-                            break
+                            key_column = col["column"]
+                        # Attribute column for this entity
+                        if target_conn.get("attribute_of") == entity_name:
+                            attributes.append(col["column"])
+
+            if key_column:
+                source_refs.append(
+                    {
+                        "source": source_name,
+                        "column": key_column,
+                        "attributes": attributes,
+                    }
+                )
 
         return {
             "entity_name": entity_name,
@@ -135,6 +142,7 @@ class TargetGenerator(BaseGenerator):
 
         for source_name, source_info in source_models.items():
             entity_columns: Dict[str, List[str]] = {}
+            attributes: List[str] = []
             is_connected = False
 
             for col in source_info["columns"]:
@@ -142,6 +150,7 @@ class TargetGenerator(BaseGenerator):
                     for target_conn in col["target"]:
                         target_name = target_conn.get("target_name")
                         entity_name = target_conn.get("entity_name")
+                        attribute_of = target_conn.get("attribute_of")
 
                         if target_name == relation_name and entity_name:
                             is_connected = True
@@ -149,14 +158,16 @@ class TargetGenerator(BaseGenerator):
                                 entity_columns[entity_name] = []
                             entity_columns[entity_name].append(col["column"])
 
+                        # Collect attributes for this relation (measures for fact)
+                        if attribute_of == relation_name:
+                            attributes.append(col["column"])
+
             if is_connected:
-                # Include all column names from this source for UNION ALL handling
-                all_columns = [c["column"] for c in source_info["columns"]]
                 sources.append(
                     {
                         "source": source_name,
                         "entity_columns": entity_columns,
-                        "all_columns": all_columns,
+                        "attributes": attributes,
                     }
                 )
 

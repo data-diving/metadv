@@ -1,5 +1,6 @@
 {%- set source_model = '${source_name}' -%}
 {%- set columns = ${columns} -%}
+{%- set targets = ${targets} -%}
 
 {#- Build derived columns -#}
 {%- set derived_columns = {} -%}
@@ -8,6 +9,9 @@
 {%- set hashed_columns = {} -%}
 {%- set hashdiff_columns = {} -%}
 {%- set link_columns = {} -%}
+
+{#- Track entity occurrences per relation for self-link handling -#}
+{%- set relation_entity_counts = {} -%}
 
 {%- for col in columns -%}
     {%- if col.target -%}
@@ -31,8 +35,25 @@
 
             {#- Key column for relation (link foreign key + collect for link hash key) -#}
             {%- if target_name and entity_name -%}
-                {#- Foreign key hash for the entity within the link -#}
-                {%- set fk_name = target_name ~ '_' ~ entity_name ~ '_hk' -%}
+                {#- Check if this is a self-link (same entity appears multiple times) -#}
+                {%- set relation_info = targets.get(target_name, {}) -%}
+                {%- set relation_entities = relation_info.get('entities', []) -%}
+                {%- set is_self_link = (relation_entities | length) != (relation_entities | unique | list | length) -%}
+
+                {#- Track entity occurrence for self-links -#}
+                {%- set relation_key = target_name ~ '_' ~ entity_name -%}
+                {%- if relation_key not in relation_entity_counts -%}
+                    {%- do relation_entity_counts.update({relation_key: 0}) -%}
+                {%- endif -%}
+                {%- do relation_entity_counts.update({relation_key: relation_entity_counts[relation_key] + 1}) -%}
+
+                {#- Build FK name with sequence number for self-links -#}
+                {%- if is_self_link -%}
+                    {%- set fk_name = target_name ~ '_' ~ entity_name ~ '_' ~ relation_entity_counts[relation_key] ~ '_hk' -%}
+                {%- else -%}
+                    {%- set fk_name = target_name ~ '_' ~ entity_name ~ '_hk' -%}
+                {%- endif -%}
+
                 {%- if fk_name not in hashed_columns -%}
                     {%- do hashed_columns.update({fk_name: []}) -%}
                 {%- endif -%}

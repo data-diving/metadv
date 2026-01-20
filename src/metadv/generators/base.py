@@ -37,7 +37,9 @@ class BaseGenerator(ABC):
         if condition == "has_attributes":
             return bool(context.get("attributes"))
         if condition == "is_multiactive":
-            return bool(context.get("multiactive_key_columns"))
+            # Extract multiactive status from attributes
+            attributes = context.get("attributes", [])
+            return any(attr.get("multiactive_key") for attr in attributes)
         return True
 
     def format_filename(self, pattern: str, context: Dict[str, Any]) -> str:

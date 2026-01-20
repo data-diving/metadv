@@ -2,79 +2,73 @@
 {%- set entities = ${entities} -%}
 {%- set source_refs = ${source_refs} -%}
 
-{#- Get unique source models -#}
 {%- set sources = source_refs | map(attribute='source') | unique | list -%}
 
-{#- Build source to entity column and all_columns mappings -#}
+{%- set is_self_ref = (entities | length) != (entities | unique | list | length) -%}
+
 {%- set source_entity_columns = {} -%}
-{%- set source_all_columns = {} -%}
-{%- for ref in source_refs -%}
-    {%- if ref.entity_columns is defined -%}
-        {%- do source_entity_columns.update({ref['source']: ref.entity_columns}) -%}
-    {%- endif -%}
-    {%- if ref.all_columns is defined -%}
-        {%- do source_all_columns.update({ref['source']: ref.all_columns}) -%}
-    {%- endif -%}
+{%- set source_attributes = {} -%}
+{%- for src_ref in source_refs -%}
+    {%- do source_entity_columns.update({src_ref['source']: src_ref.get('entity_columns', {})}) -%}
+    {%- do source_attributes.update({src_ref['source']: src_ref.get('attributes', [])}) -%}
 {%- endfor -%}
 
-{#- Single source: simple select with FK aliases -#}
+{%- set all_attrs = [] -%}
+{%- for src_ref in source_refs -%}
+    {%- for attr in src_ref.get('attributes', []) -%}
+        {%- if attr not in all_attrs -%}
+            {%- do all_attrs.append(attr) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+
 {% if sources | length == 1 %}
 {%- set source = sources[0] -%}
-{%- set entity_cols = source_entity_columns[source] if source in source_entity_columns else {} -%}
+{%- set entity_cols = source_entity_columns[source] -%}
+{%- set attrs = source_attributes[source] -%}
+{%- set entity_col_idx = {} -%}
 SELECT
-{%- for entity in entities %}
-    {{ entity_cols[entity][0] if entity in entity_cols else entity ~ '_id' }} AS {{ entity }}_id,
-{%- endfor %}
-    *
+{% for entity in entities %}
+    {%- if is_self_ref -%}
+        {%- set col_list = entity_cols.get(entity, []) -%}
+        {%- set idx = entity_col_idx.get(entity, 0) -%}
+        {%- set src_col = col_list[idx] if idx < (col_list | length) else entity ~ '_id' -%}
+        {%- do entity_col_idx.update({entity: idx + 1}) -%}
+        {%- set seq = entities[:loop.index] | select('equalto', entity) | list | length -%}
+    {{ src_col }} AS {{ entity }}_{{ seq }}_id,
+    {%- else %}
+    {{ entity_cols.get(entity, [entity ~ '_id'])[0] }} AS {{ entity }}_id,
+    {%- endif %}
+{% endfor %}
+{% for attr in attrs %}
+    {{ attr }}{{ "," if not loop.last else "" }}
+{% endfor %}
 FROM {{ ref(source) }}
 
-{#- Multiple sources: explicit column list with NULLs for missing columns -#}
 {% else %}
-{#- Collect all unique columns across all sources -#}
-{%- set all_cols = [] -%}
-{%- for source in sources -%}
-    {%- for col in source_all_columns.get(source, []) -%}
-        {%- if col not in all_cols -%}
-            {%- do all_cols.append(col) -%}
-        {%- endif -%}
-    {%- endfor -%}
-{%- endfor -%}
-
-{#- Build list of FK source columns to exclude from non-key columns -#}
-{%- set fk_source_cols = [] -%}
-{%- for source in sources -%}
-    {%- set entity_cols = source_entity_columns.get(source, {}) -%}
-    {%- for entity in entities -%}
-        {%- if entity in entity_cols -%}
-            {%- for col in entity_cols[entity] -%}
-                {%- if col not in fk_source_cols -%}
-                    {%- do fk_source_cols.append(col) -%}
-                {%- endif -%}
-            {%- endfor -%}
-        {%- endif -%}
-    {%- endfor -%}
-{%- endfor -%}
-
-{#- Build list of non-FK columns -#}
-{%- set non_fk_cols = [] -%}
-{%- for col in all_cols -%}
-    {%- if col not in fk_source_cols -%}
-        {%- do non_fk_cols.append(col) -%}
-    {%- endif -%}
-{%- endfor -%}
-
 {%- for source in sources %}
-{%- set entity_cols = source_entity_columns.get(source, {}) -%}
-{%- set src_cols = source_all_columns.get(source, []) -%}
-{% if loop.first %}{% else %}UNION ALL
-{% endif %}SELECT
-{%- for entity in entities %}
-    {{ entity_cols[entity][0] if entity in entity_cols else entity ~ '_id' }} AS {{ entity }}_id,
-{%- endfor %}
-{%- for col in non_fk_cols %}
-    {% if col in src_cols %}{{ col }}{% else %}NULL AS {{ col }}{% endif %}{{ "," if not loop.last else "" }}
-{%- endfor %}
-
+{%- set entity_cols = source_entity_columns[source] -%}
+{%- set src_attrs = source_attributes[source] -%}
+{%- set entity_col_idx = {} -%}
+{% if not loop.first %}
+UNION ALL
+{% endif %}
+SELECT
+{% for entity in entities %}
+    {%- if is_self_ref -%}
+        {%- set col_list = entity_cols.get(entity, []) -%}
+        {%- set idx = entity_col_idx.get(entity, 0) -%}
+        {%- set src_col = col_list[idx] if idx < (col_list | length) else entity ~ '_id' -%}
+        {%- do entity_col_idx.update({entity: idx + 1}) -%}
+        {%- set seq = entities[:loop.index] | select('equalto', entity) | list | length -%}
+    {{ src_col }} AS {{ entity }}_{{ seq }}_id,
+    {%- else %}
+    {{ entity_cols.get(entity, [entity ~ '_id'])[0] }} AS {{ entity }}_id,
+    {%- endif %}
+{% endfor %}
+{% for attr in all_attrs %}
+    {% if attr in src_attrs %}{{ attr }}{% else %}NULL AS {{ attr }}{% endif %}{{ "," if not loop.last else "" }}
+{% endfor %}
 FROM {{ ref(source) }}
 {%- endfor %}
 {% endif %}

@@ -76,13 +76,10 @@ target-version = ["py38", "py39", "py310", "py311", "py312"]
 profile = "black"
 line_length = 100
 
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+
+[tool.ty.rules]
+possibly-missing-attribute = "ignore"
