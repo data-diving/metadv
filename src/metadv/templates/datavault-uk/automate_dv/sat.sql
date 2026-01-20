@@ -1,11 +1,11 @@
 {%- set source_model = '${source_model}' -%}
-{%- set target_name = '${target_name}' -%}
+{%- set entity_name = '${entity_name}' -%}
 {%- set payload_columns = ${payload_columns} -%}
 
 {%- set yaml_metadata -%}
 source_model: '{{ source_model }}'
-src_pk: {{ target_name }}_hk
-src_hashdiff: {{ target_name }}_hashdiff
+src_pk: {{ entity_name }}_hk
+src_hashdiff: {{ entity_name }}_hashdiff
 src_payload:
 {% for col in payload_columns %}
   - {{ col }}

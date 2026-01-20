@@ -21,13 +21,9 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass, field
 
-try:
-    import yaml
-except ImportError:
-    print("Error: PyYAML is required. Install it with: pip install pyyaml")
-    sys.exit(1)
+import yaml
 
-from .generators import StageGenerator, HubGenerator, LinkGenerator, SatGenerator
+from .generators import TargetGenerator, SourceTargetGenerator, SourceGenerator
 from .validations import ValidationContext, ValidationMessage, run_validations
 
 
@@ -67,11 +63,23 @@ class MetaDVGenerator:
     Can be used as a library or standalone CLI tool.
     """
 
-    # Supported packages and their macro prefixes
-    PACKAGE_PREFIXES = {
-        "datavault-uk/automate_dv": "automate_dv",
-        "scalefreecom/datavault4dbt": "datavault4dbt",
-    }
+    # Templates directory for package discovery
+    TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+    @classmethod
+    def get_available_packages(cls) -> List[str]:
+        """Discover available template packages from the templates directory."""
+        packages = []
+        for item in cls.TEMPLATES_DIR.iterdir():
+            if item.is_dir() and item.name != "__pycache__":
+                templates_yml = item / "templates.yml"
+                if templates_yml.exists():
+                    packages.append(item.name)
+                else:
+                    for subitem in item.iterdir():
+                        if subitem.is_dir() and (subitem / "templates.yml").exists():
+                            packages.append(f"{item.name}/{subitem.name}")
+        return sorted(packages)
 
     def __init__(self, project_path: str, package_name: str):
         """
@@ -79,7 +87,7 @@ class MetaDVGenerator:
 
         Args:
             project_path: Path to the dbt project root directory
-            package_name: Name of the Data Vault package to use (e.g., 'datavault-uk/automate_dv')
+            package_name: Name of the template package to use (e.g., 'datavault-uk/automate_dv')
         """
         self.project_path = Path(project_path).expanduser().resolve()
         self.metadv_path = self.project_path / "models" / "metadv"
@@ -87,20 +95,18 @@ class MetaDVGenerator:
         self._data: Optional[MetaDVData] = None
         self._raw_content: Optional[Dict[str, Any]] = None
         self.package_name = package_name
-        self.package_prefix = self.PACKAGE_PREFIXES.get(
-            self.package_name.lower() if self.package_name else "",
-            "automate_dv",  # Default fallback
+
+        # Initialize domain-based generators
+        # Target-level: one file per target (hub, link, dim, fact)
+        self._entity_generator = TargetGenerator(self.package_name, "entity")
+        self._relation_generator = TargetGenerator(self.package_name, "relation")
+        # Source-target level: one file per source-target pair (sat, SCD targets)
+        self._entity_source_target_generator = SourceTargetGenerator(self.package_name, "entity")
+        self._relation_source_target_generator = SourceTargetGenerator(
+            self.package_name, "relation"
         )
-
-        # Initialize generators
-        self._stage_generator = StageGenerator(self.package_name, self.package_prefix)
-        self._hub_generator = HubGenerator(self.package_name, self.package_prefix)
-        self._link_generator = LinkGenerator(self.package_name, self.package_prefix)
-        self._sat_generator = SatGenerator(self.package_name, self.package_prefix)
-
-    def exists(self) -> bool:
-        """Check if metadv.yml exists."""
-        return self.metadv_yml_path.exists()
+        # Source-level: one file per source (stage)
+        self._source_generator = SourceGenerator(self.package_name)
 
     def read(self) -> Tuple[bool, Optional[str], Optional[MetaDVData]]:
         """
@@ -136,54 +142,7 @@ class MetaDVGenerator:
                 for column in columns:
                     col_name = column.get("name", "")
 
-                    # Unified structure: target array directly on column (no meta wrapper)
-                    target = column.get("target", None)
-
-                    # Backwards compatibility: check for old meta-wrapped format
-                    if target is None:
-                        meta = column.get("meta", {}) or {}
-                        target = meta.get("target", None)
-
-                        # Even older formats: entity_name/attribute_of as separate fields
-                        if target is None:
-                            target = []
-
-                            # Old entity_name/entity_relation format
-                            old_entity_name = meta.get("entity_name", None)
-                            entity_name_index = meta.get("entity_name_index", None)
-                            entity_relation = meta.get("entity_relation", None)
-
-                            if old_entity_name is not None:
-                                if isinstance(old_entity_name, str):
-                                    old_entity_name = [old_entity_name]
-                                for en in old_entity_name:
-                                    if entity_relation:
-                                        target_entry = {
-                                            "target_name": entity_relation,
-                                            "entity_name": en,
-                                        }
-                                    else:
-                                        target_entry = {"target_name": en}
-                                    if entity_name_index is not None:
-                                        target_entry["entity_index"] = entity_name_index
-                                    target.append(target_entry)
-
-                            # Old attribute_of format (separate field)
-                            old_attribute_of = meta.get("attribute_of", None)
-                            old_target_attribute = meta.get("target_attribute", None)
-                            old_multiactive_key = meta.get("multiactive_key", None)
-
-                            if old_attribute_of is not None:
-                                # Handle both string and list formats
-                                if isinstance(old_attribute_of, str):
-                                    old_attribute_of = [old_attribute_of]
-                                for attr_target in old_attribute_of:
-                                    attr_entry = {"attribute_of": attr_target}
-                                    if old_target_attribute:
-                                        attr_entry["target_attribute"] = old_target_attribute
-                                    if old_multiactive_key:
-                                        attr_entry["multiactive_key"] = True
-                                    target.append(attr_entry)
+                    target = column.get("target")
 
                     col_data = {
                         "source": source_name,
@@ -288,39 +247,8 @@ class MetaDVGenerator:
                 total_columns += 1
                 has_connection = False
 
-                # Unified target array directly on column (no meta wrapper)
                 target = column.get("target")
 
-                # Backwards compatibility: check for old meta-wrapped format
-                if target is None:
-                    meta = column.get("meta", {}) or {}
-                    target = meta.get("target")
-
-                    # Even older formats: entity_name/attribute_of as separate fields
-                    if target is None:
-                        target = []
-                        # Old entity_name format
-                        old_entity_name = meta.get("entity_name")
-                        entity_relation = meta.get("entity_relation")
-                        if old_entity_name:
-                            if isinstance(old_entity_name, str):
-                                old_entity_name = [old_entity_name]
-                            for en in old_entity_name:
-                                if entity_relation:
-                                    target.append(
-                                        {"target_name": entity_relation, "entity_name": en}
-                                    )
-                                else:
-                                    target.append({"target_name": en})
-                        # Old attribute_of format
-                        old_attribute_of = meta.get("attribute_of")
-                        if old_attribute_of:
-                            if isinstance(old_attribute_of, str):
-                                old_attribute_of = [old_attribute_of]
-                            for attr in old_attribute_of:
-                                target.append({"attribute_of": attr})
-
-                # Process unified target array
                 if target:
                     for target_conn in target:
                         # Check if this is an attribute connection
@@ -374,12 +302,6 @@ class MetaDVGenerator:
     def generate(self, output_path: Optional[str] = None) -> Tuple[bool, Optional[str], List[str]]:
         """
         Generate SQL models from metadv.yml configuration.
-
-        Generates the following structure:
-        - stage/stg_<source>__<table>.sql - One per source table with target connections
-        - hub/hub_<entity>.sql - One per entity target
-        - link/link_<entity1>_<entity2>_...sql - One per relation target
-        - sat/sat_<target>__<source>__<table>.sql - One per source table-target pair
 
         Args:
             output_path: Optional custom output directory. If None, uses metadv folder.
@@ -441,21 +363,35 @@ class MetaDVGenerator:
                         if attr_target:
                             source_models[source_name]["connected_targets"].add(attr_target)
 
-            # 1. Generate stage models
-            stage_files = self._stage_generator.generate(output_dir, source_models, targets_by_name)
-            generated_files.extend(stage_files)
+            # 1. Generate entity target models (hub, dim)
+            entity_files = self._entity_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(entity_files)
 
-            # 2. Generate hub models
-            hub_files = self._hub_generator.generate(output_dir, source_models, targets_by_name)
-            generated_files.extend(hub_files)
+            # 2. Generate relation target models (link, fact)
+            relation_files = self._relation_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(relation_files)
 
-            # 3. Generate link models
-            link_files = self._link_generator.generate(output_dir, source_models, targets_by_name)
-            generated_files.extend(link_files)
+            # 3. Generate entity source-target models
+            entity_source_target_files = self._entity_source_target_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(entity_source_target_files)
 
-            # 4. Generate satellite models
-            sat_files = self._sat_generator.generate(output_dir, source_models, targets_by_name)
-            generated_files.extend(sat_files)
+            # 4. Generate relation source-target models
+            relation_source_target_files = self._relation_source_target_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(relation_source_target_files)
+
+            # 5. Generate source models (stage)
+            source_files = self._source_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(source_files)
 
             return True, None, generated_files
 
@@ -463,15 +399,16 @@ class MetaDVGenerator:
             return False, f"Generation error: {str(e)}", generated_files
 
     def _cleanup_generated_folders(self, output_dir: Path) -> None:
-        """Delete all files in stage, hub, link, and sat folders before regenerating."""
-        folders_to_clean = ["stage", "hub", "link", "sat"]
+        """Delete everything in output folder except metadv.yml."""
+        import shutil
 
-        for folder_name in folders_to_clean:
-            folder_path = output_dir / folder_name
-            if folder_path.exists() and folder_path.is_dir():
-                # Remove all .sql files in the folder
-                for sql_file in folder_path.glob("*.sql"):
-                    sql_file.unlink()
+        for item in output_dir.iterdir():
+            if item.name == "metadv.yml":
+                continue
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
 
 
 def validate_metadv(
@@ -480,11 +417,9 @@ def validate_metadv(
     """
     Convenience function for validating metadv.yml.
 
-    This function can be called from metadv_routes.py or standalone.
-
     Args:
         project_path: Path to the dbt project
-        package_name: Name of the Data Vault package
+        package_name: Name of the package or folder
 
     Returns:
         Dictionary with validation results
@@ -502,7 +437,7 @@ def read_metadv(
 
     Args:
         project_path: Path to the dbt project
-        package_name: Name of the Data Vault package
+        package_name: Name of the package or folder
 
     Returns:
         Dictionary with read results
@@ -541,8 +476,8 @@ Examples:
         "--package",
         "-p",
         required=True,
-        choices=["datavault-uk/automate_dv", "scalefreecom/datavault4dbt"],
-        help="Data Vault package to use for SQL generation",
+        choices=MetaDVGenerator.get_available_packages(),
+        help="Template package/folder to use for SQL generation",
     )
 
     parser.add_argument(
@@ -564,23 +499,6 @@ Examples:
 
     # Create generator
     generator = MetaDVGenerator(args.project_path, args.package)
-
-    # Check if metadv.yml exists
-    if not generator.exists():
-        if args.json:
-            import json
-
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": f"metadv.yml not found at {generator.metadv_yml_path}",
-                    }
-                )
-            )
-        else:
-            print(f"Error: metadv.yml not found at {generator.metadv_yml_path}")
-        sys.exit(1)
 
     # Validate
     validation = generator.validate()

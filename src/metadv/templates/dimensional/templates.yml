@@ -1,0 +1,11 @@
+entity:
+  dimension:
+    template: dimension.sql
+    filename: "dim/dim_{entity_name}.sql"
+    scope: entity
+
+relation:
+  fact:
+    template: fact.sql
+    filename: "fact/fact_{relation_name}.sql"
+    scope: relation

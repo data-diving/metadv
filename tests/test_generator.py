@@ -71,12 +71,7 @@ class TestMetaDVGenerator:
         """Test generator initialization."""
         generator = MetaDVGenerator(str(sample_project), "datavault-uk/automate_dv")
         assert generator.project_path == sample_project
-        assert generator.package_prefix == "automate_dv"
-
-    def test_generator_exists(self, sample_project):
-        """Test exists() method."""
-        generator = MetaDVGenerator(str(sample_project), "datavault-uk/automate_dv")
-        assert generator.exists() is True
+        assert generator.package_name == "datavault-uk/automate_dv"
 
     def test_generator_read(self, sample_project):
         """Test read() method."""
@@ -121,7 +116,7 @@ class TestMetaDVGenerator:
             yaml.dump(packages, f)
 
         generator = MetaDVGenerator(str(sample_project), "scalefreecom/datavault4dbt")
-        assert generator.package_prefix == "datavault4dbt"
+        assert generator.package_name == "scalefreecom/datavault4dbt"
 
         success, error, files = generator.generate()
         assert success is True
