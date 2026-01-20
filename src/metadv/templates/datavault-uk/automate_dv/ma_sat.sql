@@ -1,7 +1,17 @@
 {%- set source_model = '${source_model}' -%}
 {%- set entity_name = '${entity_name}' -%}
-{%- set payload_columns = ${payload_columns} -%}
-{%- set multiactive_key_columns = ${multiactive_key_columns} -%}
+{%- set attributes = ${attributes} -%}
+
+{#- Derive payload and multiactive key columns from attributes -#}
+{%- set payload_columns = [] -%}
+{%- set multiactive_key_columns = [] -%}
+{%- for attr in attributes -%}
+    {%- if attr.multiactive_key -%}
+        {%- do multiactive_key_columns.append(attr.column) -%}
+    {%- else -%}
+        {%- do payload_columns.append(attr.column) -%}
+    {%- endif -%}
+{%- endfor -%}
 
 {%- set yaml_metadata -%}
 source_model: '{{ source_model }}'

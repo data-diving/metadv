@@ -22,7 +22,7 @@ class BaseGenerator(ABC):
             package_name: Template package name (e.g., 'datavault-uk/automate_dv')
         """
         self.package_name = package_name
-        self.template_path = self.TEMPLATES_DIR / package_name
+        self.template_path = self.TEMPLATES_DIR / package_name.lower()
         with open(self.template_path / "templates.yml", "r", encoding="utf-8") as f:
             self._templates_config = yaml.safe_load(f)
 

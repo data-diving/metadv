@@ -1,7 +1,7 @@
 """Source generator - generates models for sources."""
 
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from .base import BaseGenerator
 
@@ -52,22 +52,3 @@ class SourceGenerator(BaseGenerator):
             "columns": columns,
             "targets": targets_by_name,
         }
-
-    def _render_and_write(
-        self,
-        template_config: Dict[str, Any],
-        context: Dict[str, Any],
-        output_dir: Path,
-    ) -> Optional[str]:
-        """Render template and write to file."""
-        template_name = template_config["template"]
-        filename_pattern = template_config["filename"]
-
-        # Format filename with context (includes path)
-        filepath = self.format_filename(filename_pattern, context)
-
-        # Render template
-        sql_content = self.render_template(template_name, **context)
-
-        # Write file
-        return self._write_file(output_dir, filepath, sql_content)

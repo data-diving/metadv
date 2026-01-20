@@ -1,7 +1,7 @@
 """Target generator - generates models for entity and relation targets."""
 
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from .base import BaseGenerator
 
@@ -9,9 +9,9 @@ from .base import BaseGenerator
 class TargetGenerator(BaseGenerator):
     """Generator for target-level templates."""
 
-    def __init__(self, package_name: str, package_prefix: str, target_type: str):
+    def __init__(self, package_name: str, target_type: str):
         """Initialize generator for a specific target type."""
-        super().__init__(package_name, package_prefix)
+        super().__init__(package_name)
         self.target_type = target_type
 
     def generate(
@@ -89,15 +89,20 @@ class TargetGenerator(BaseGenerator):
                 if col.get("target"):
                     for target_conn in col["target"]:
                         if target_conn.get("target_name") == entity_name:
-                            source_refs.append({"source": source_name, "column": col["column"]})
+                            # Include all column names from this source for UNION ALL handling
+                            all_columns = [c["column"] for c in source_info["columns"]]
+                            source_refs.append(
+                                {
+                                    "source": source_name,
+                                    "column": col["column"],
+                                    "all_columns": all_columns,
+                                }
+                            )
                             break
-
-        source_models_list = self._get_unique_stage_models(source_refs)
 
         return {
             "entity_name": entity_name,
             "source_refs": source_refs,
-            "source_models": source_models_list,
         }
 
     def _build_relation_context(
@@ -109,7 +114,6 @@ class TargetGenerator(BaseGenerator):
         """Build template context for a relation (link/fact)."""
         entities = relation_info.get("entities", [])
         source_refs = self._find_link_sources(relation_name, source_models)
-        source_models_list = self._get_unique_stage_models(source_refs)
         fk_columns = self._build_fk_columns(relation_name, entities)
 
         return {
@@ -118,7 +122,6 @@ class TargetGenerator(BaseGenerator):
             "entities": entities,
             "entities_joined": "_".join(entities),
             "source_refs": source_refs,
-            "source_models": source_models_list,
             "fk_columns": fk_columns,
         }
 
@@ -147,7 +150,15 @@ class TargetGenerator(BaseGenerator):
                             entity_columns[entity_name].append(col["column"])
 
             if is_connected:
-                sources.append({"source": source_name, "entity_columns": entity_columns})
+                # Include all column names from this source for UNION ALL handling
+                all_columns = [c["column"] for c in source_info["columns"]]
+                sources.append(
+                    {
+                        "source": source_name,
+                        "entity_columns": entity_columns,
+                        "all_columns": all_columns,
+                    }
+                )
 
         return sources
 
@@ -164,18 +175,3 @@ class TargetGenerator(BaseGenerator):
                 fk_columns.append(f"{relation_name}_{entity}_hk")
 
         return fk_columns
-
-    def _render_and_write(
-        self,
-        template_config: Dict[str, Any],
-        context: Dict[str, Any],
-        output_dir: Path,
-    ) -> Optional[str]:
-        """Render template and write to file."""
-        template_name = template_config["template"]
-        filename_pattern = template_config["filename"]
-
-        filepath = self.format_filename(filename_pattern, context)
-        sql_content = self.render_template(template_name, **context)
-
-        return self._write_file(output_dir, filepath, sql_content)

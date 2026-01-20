@@ -108,7 +108,6 @@ class SourceTargetGenerator(BaseGenerator):
 
         # Find key column and attributes for this target from this source
         attributes = []
-        multiactive_key_columns = []
         key_column = None
 
         for col in columns:
@@ -119,23 +118,13 @@ class SourceTargetGenerator(BaseGenerator):
                         key_column = col["column"]
                     # Attribute
                     if target_conn.get("attribute_of") == target_name:
-                        col_with_meta = {
-                            **col,
-                            "target_attribute": target_conn.get("target_attribute"),
-                            "multiactive_key": target_conn.get("multiactive_key"),
-                        }
-                        attributes.append(col_with_meta)
-                        if target_conn.get("multiactive_key") is True:
-                            multiactive_key_columns.append(col["column"])
-
-        # Build payload columns (exclude multiactive keys)
-        if multiactive_key_columns:
-            multiactive_key_set = set(multiactive_key_columns)
-            payload_columns = [
-                attr["column"] for attr in attributes if attr["column"] not in multiactive_key_set
-            ]
-        else:
-            payload_columns = [attr["column"] for attr in attributes]
+                        attributes.append(
+                            {
+                                "column": col["column"],
+                                "target_attribute": target_conn.get("target_attribute"),
+                                "multiactive_key": target_conn.get("multiactive_key"),
+                            }
+                        )
 
         context = {
             "target_name": target_name,
@@ -143,8 +132,6 @@ class SourceTargetGenerator(BaseGenerator):
             "source_model": f"stg_{source_name}",
             "columns": columns,
             "attributes": attributes,
-            "payload_columns": payload_columns,
-            "multiactive_key_columns": multiactive_key_columns,
             "key_column": key_column,
         }
 

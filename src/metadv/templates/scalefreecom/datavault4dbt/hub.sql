@@ -1,9 +1,9 @@
-{%- set source_model_names = ${source_models} -%}
+{%- set source_refs = ${source_refs} -%}
 {%- set entity_name = '${entity_name}' -%}
 
 {%- set source_models = [] -%}
-{%- for name in source_model_names -%}
-    {%- do source_models.append({'name': name}) -%}
+{%- for ref in source_refs | map(attribute='source') | unique -%}
+    {%- do source_models.append({'name': 'stg_' ~ ref}) -%}
 {%- endfor -%}
 
 {{ datavault4dbt.hub(
