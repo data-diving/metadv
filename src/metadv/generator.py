@@ -93,10 +93,10 @@ class MetaDVGenerator:
         )
 
         # Initialize generators
-        self._stage_generator = StageGenerator(self.package_prefix)
-        self._hub_generator = HubGenerator(self.package_prefix)
-        self._link_generator = LinkGenerator(self.package_prefix)
-        self._sat_generator = SatGenerator(self.package_prefix)
+        self._stage_generator = StageGenerator(self.package_name, self.package_prefix)
+        self._hub_generator = HubGenerator(self.package_name, self.package_prefix)
+        self._link_generator = LinkGenerator(self.package_name, self.package_prefix)
+        self._sat_generator = SatGenerator(self.package_name, self.package_prefix)
 
     def exists(self) -> bool:
         """Check if metadv.yml exists."""

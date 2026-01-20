@@ -12,15 +12,17 @@ class BaseGenerator(ABC):
 
     TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
-    def __init__(self, package_prefix: str):
+    def __init__(self, package_name: str, package_prefix: str):
         """
         Initialize the generator.
 
         Args:
+            package_name: Template package name (e.g., 'datavault-uk/automate_dv')
             package_prefix: The dbt package prefix to use (e.g., 'automate_dv', 'datavault4dbt')
         """
+        self.package_name = package_name
         self.package_prefix = package_prefix
-        self.template_path = self.TEMPLATES_DIR / package_prefix
+        self.template_path = self.TEMPLATES_DIR / package_name
 
     def render_template(self, template_name: str, **kwargs) -> str:
         """
