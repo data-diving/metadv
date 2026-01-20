@@ -3,8 +3,10 @@
 import json
 from pathlib import Path
 from string import Template
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from abc import ABC, abstractmethod
+
+import yaml
 
 
 class BaseGenerator(ABC):
@@ -23,6 +25,31 @@ class BaseGenerator(ABC):
         self.package_name = package_name
         self.package_prefix = package_prefix
         self.template_path = self.TEMPLATES_DIR / package_name
+        self._templates_config = self._load_templates_config()
+
+    def _load_templates_config(self) -> Dict[str, Any]:
+        """Load templates.yml configuration."""
+        config_path = self.template_path / "templates.yml"
+        with open(config_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
+    def get_domain_templates(self, domain: str) -> Dict[str, Dict[str, Any]]:
+        """Get all template configs for a domain (entity/relation/source)."""
+        return self._templates_config.get(domain, {})
+
+    def check_condition(self, condition: Optional[str], context: Dict[str, Any]) -> bool:
+        """Check if condition is met for rendering."""
+        if not condition:
+            return True
+        if condition == "has_attributes":
+            return bool(context.get("attributes"))
+        if condition == "is_multiactive":
+            return bool(context.get("multiactive_key_columns"))
+        return True
+
+    def format_filename(self, pattern: str, context: Dict[str, Any]) -> str:
+        """Format filename pattern with context variables."""
+        return pattern.format(**context)
 
     def render_template(self, template_name: str, **kwargs) -> str:
         """
@@ -88,3 +115,11 @@ class BaseGenerator(ABC):
                 stage_models.append(stage_ref)
                 seen_stages.add(stage_ref)
         return stage_models
+
+    def _write_file(self, output_dir: Path, filepath: str, content: str) -> str:
+        """Write content to a file and return the path."""
+        full_path = output_dir / filepath
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return str(full_path)
