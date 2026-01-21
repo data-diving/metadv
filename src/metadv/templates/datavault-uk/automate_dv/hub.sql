@@ -1,10 +1,10 @@
-{%- set source_models = ${source_models} -%}
+{%- set source_refs = ${source_refs} -%}
 {%- set entity_name = '${entity_name}' -%}
 
 {%- set yaml_metadata -%}
 source_model:
-{% for model in source_models %}
-  - {{ model }}
+{% for ref in source_refs | map(attribute='source') | unique %}
+  - stg_{{ ref }}
 {% endfor %}
 src_pk: {{ entity_name }}_hk
 src_nk:

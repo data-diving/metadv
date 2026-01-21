@@ -1,7 +1,14 @@
 {%- set source_model = '${source_model}' -%}
 {%- set target_name = '${target_name}' -%}
-{%- set payload_columns = ${payload_columns} -%}
-{%- set cdk_columns = ${cdk_columns} -%}
+{%- set attributes = ${attributes} -%}
+
+{#- Derive payload columns (non-multiactive attributes) -#}
+{%- set payload_columns = [] -%}
+{%- for attr in attributes -%}
+    {%- if not attr.multiactive_key -%}
+        {%- do payload_columns.append(attr.column) -%}
+    {%- endif -%}
+{%- endfor -%}
 
 {%- set yaml_metadata -%}
 source_model: '{{ source_model }}'
@@ -11,19 +18,14 @@ src_payload:
 {% for col in payload_columns %}
   - {{ col }}
 {% endfor %}
-src_cdk:
-{% for col in cdk_columns %}
-  - {{ col }}
-{% endfor %}
 src_ldts: load_dt
 src_source: record_source
 {%- endset -%}
 
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 
-{{ automate_dv.ma_sat(
+{{ automate_dv.sat(
     src_pk=metadata_dict["src_pk"],
-    src_cdk=metadata_dict["src_cdk"],
     src_hashdiff=metadata_dict["src_hashdiff"],
     src_payload=metadata_dict["src_payload"],
     src_ldts=metadata_dict["src_ldts"],

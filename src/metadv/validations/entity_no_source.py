@@ -1,6 +1,7 @@
 """Validation: Check that entity targets have source connections."""
 
 from typing import List
+
 from .base import BaseValidator, ValidationContext, ValidationMessage
 
 

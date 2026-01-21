@@ -1,6 +1,7 @@
 """Validation: Check that relation targets have source columns connected."""
 
 from typing import List
+
 from .base import BaseValidator, ValidationContext, ValidationMessage
 
 

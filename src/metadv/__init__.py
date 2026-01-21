@@ -1,9 +1,10 @@
 """
-MetaDV - Metadata-Driven Data Vault Generator
+MetaDV - Metadata-Driven Model Generator
 
-A Python library for generating Data Vault 2.0 SQL models from a declarative
-YAML configuration. Supports popular dbt Data Vault packages like automate_dv
-and datavault4dbt.
+A Python library for generating SQL models from a declarative YAML configuration.
+Supports multiple data modeling approaches including Data Vault 2.0 and Dimensional
+Modeling, with template packages for popular dbt libraries like automate_dv,
+datavault4dbt, and dimensional.
 
 Example usage:
     from metadv import MetaDVGenerator
@@ -22,23 +23,27 @@ Example usage:
 __version__ = "0.1.0"
 
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-try:
+if TYPE_CHECKING:
     import yaml
-except ImportError:
-    yaml = None
+else:
+    try:
+        import yaml
+    except ImportError:
+        yaml = None
 
 
-# Supported Data Vault packages (in order of preference)
+# Supported template packages (in order of preference for auto-detection)
 SUPPORTED_DV_PACKAGES = [
     "datavault-uk/automate_dv",
     "scalefreecom/datavault4dbt",
+    "dimensional",
 ]
 
 
 def detect_installed_dv_package(project_path: Path) -> Optional[str]:
-    """Detect the first installed Data Vault package from packages.yml or dependencies.yml.
+    """Detect the first installed template package from packages.yml or dependencies.yml.
 
     Args:
         project_path: Path to the dbt project root directory
@@ -75,7 +80,7 @@ def detect_installed_dv_package(project_path: Path) -> Optional[str]:
 
 
 # Import generator components
-from .generator import MetaDVGenerator, validate_metadv, read_metadv
+from .generator import MetaDVGenerator, read_metadv, validate_metadv
 
 __all__ = [
     "__version__",

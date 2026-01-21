@@ -58,5 +58,12 @@ jobs:
       - name: Check imports with isort
         run: isort --check-only src/
 
-      - name: Type check with mypy
-        run: mypy src/
+      - name: Install uv and deps
+        run: |
+          pipx install uv
+          uv sync
+
+      - name: Type check with ty
+        run: |
+          pip install ty
+          ty check src/

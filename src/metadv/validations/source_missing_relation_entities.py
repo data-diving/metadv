@@ -1,6 +1,7 @@
 """Validation: Check that sources connected to relations have all required entities."""
 
 from typing import List
+
 from .base import BaseValidator, ValidationContext, ValidationMessage
 
 

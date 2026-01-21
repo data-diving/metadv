@@ -1,0 +1,37 @@
+entity:
+  hub:
+    template: hub.sql
+    filename: "hub/hub_{entity_name}.sql"
+    scope: entity
+  sat:
+    template: sat.sql
+    filename: "sat/sat_{entity_name}__{source_name}.sql"
+    scope: source
+    condition: has_attributes
+  ma_sat:
+    template: ma_sat.sql
+    filename: "sat/ma_sat_{entity_name}__{source_name}.sql"
+    scope: source
+    condition: is_multiactive
+
+relation:
+  link:
+    template: link.sql
+    filename: "link/link_{relation_name}.sql"
+    scope: relation
+  sat:
+    template: sat.sql
+    filename: "sat/sat_{relation_name}__{source_name}.sql"
+    scope: source
+    condition: has_attributes
+  ma_sat:
+    template: ma_sat.sql
+    filename: "sat/ma_sat_{relation_name}__{source_name}.sql"
+    scope: source
+    condition: is_multiactive
+
+source:
+  stage:
+    template: stage.sql
+    filename: "stage/stg_{source_name}.sql"
+    scope: source

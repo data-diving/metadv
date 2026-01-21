@@ -1,11 +1,11 @@
-{%- set source_models = ${source_models} -%}
+{%- set source_refs = ${source_refs} -%}
 {%- set link_name = '${link_name}' -%}
 {%- set fk_columns = ${fk_columns} -%}
 
 {%- set yaml_metadata -%}
 source_model:
-{% for model in source_models %}
-  - {{ model }}
+{% for ref in source_refs | map(attribute='source') | unique %}
+  - stg_{{ ref }}
 {% endfor %}
 src_pk: {{ link_name }}_hk
 src_fk:
