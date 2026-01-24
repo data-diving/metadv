@@ -9,9 +9,9 @@ from .base import BaseGenerator
 class TargetGenerator(BaseGenerator):
     """Generator for target-level templates."""
 
-    def __init__(self, package_name: str, target_type: str):
+    def __init__(self, package_name: str, target_type: str, **kwargs):
         """Initialize generator for a specific target type."""
-        super().__init__(package_name)
+        super().__init__(package_name, **kwargs)
         self.target_type = target_type
 
     def generate(

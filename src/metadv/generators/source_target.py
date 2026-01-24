@@ -13,14 +13,14 @@ class SourceTargetGenerator(BaseGenerator):
     or SCD Type 2 dimensions in dimensional modeling.
     """
 
-    def __init__(self, package_name: str, target_type: str):
+    def __init__(self, package_name: str, target_type: str, **kwargs):
         """Initialize generator for a specific target type.
 
         Args:
             package_name: Template package/folder name
             target_type: Either "entity" or "relation"
         """
-        super().__init__(package_name)
+        super().__init__(package_name, **kwargs)
         self.target_type = target_type
 
     def generate(

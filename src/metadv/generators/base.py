@@ -14,17 +14,44 @@ class BaseGenerator(ABC):
 
     TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
-    def __init__(self, package_name: str):
+    def __init__(
+        self, package_name: str, *args, custom_templates_dir: Optional[Path] = None, **kwargs
+    ):
         """
         Initialize the generator.
 
         Args:
             package_name: Template package name (e.g., 'datavault-uk/automate_dv')
+            custom_templates_dir: Optional custom templates directory to check first
         """
         self.package_name = package_name
-        self.template_path = self.TEMPLATES_DIR / package_name.lower()
+        self.custom_templates_dir = custom_templates_dir
+
+        # Determine template path: check custom dir first, then fall back to built-in
+        self.template_path = self._resolve_template_path(package_name)
         with open(self.template_path / "templates.yml", "r", encoding="utf-8") as f:
             self._templates_config = yaml.safe_load(f)
+
+    def _resolve_template_path(self, package_name: str) -> Path:
+        """
+        Resolve the template path, checking custom directory first.
+
+        Args:
+            package_name: Template package name
+
+        Returns:
+            Path to the template directory
+        """
+        package_path = package_name.lower()
+
+        # Check custom templates directory first
+        if self.custom_templates_dir:
+            custom_path = self.custom_templates_dir / package_path
+            if custom_path.exists() and (custom_path / "templates.yml").exists():
+                return custom_path
+
+        # Fall back to built-in templates
+        return self.TEMPLATES_DIR / package_path
 
     def get_domain_templates(self, domain: str) -> Dict[str, Dict[str, Any]]:
         """Get template configs for a domain (entity/relation/source)."""
