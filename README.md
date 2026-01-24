@@ -90,6 +90,9 @@ metadv:
   # Optional: custom templates directory (relative to project root or absolute)
   templates-dir: ./my-templates
 
+  # Optional: custom validations directory (relative to project root or absolute)
+  validations-dir: ./my-validations
+
   # Define your targets (entities and relations)
   targets:
     - name: customer
@@ -141,6 +144,7 @@ metadv:
 | Field | Description |
 |-------|-------------|
 | `templates-dir` | Optional path to custom templates directory (relative to project root or absolute). Templates here take precedence over built-in templates. |
+| `validations-dir` | Optional path to custom validations directory (relative to project root or absolute). Custom validators with the same class name as built-in ones will override them. |
 | `targets` | Array of target definitions (entities and relations) |
 | `sources` | Array of source model definitions with column mappings |
 
@@ -208,6 +212,51 @@ You can create custom template packages by setting `templates-dir` in your `meta
 2. SQL template files using Jinja2 and Python string.Template syntax
 
 Templates in your custom directory take precedence over built-in templates with the same package name.
+
+## Custom Validation Packages
+
+You can create custom validators by setting `validations-dir` in your `metadv.yml` to point to a directory containing your validation Python files.
+
+### Creating Custom Validators
+
+1. Create a Python file in your validations directory (e.g., `my_validation.py`)
+2. Import the base class from metadv
+3. Create a class that inherits from `BaseValidator`
+4. Implement the `validate()` method
+
+```python
+# my_validation.py
+from metadv.validations.base import BaseValidator, ValidationContext, ValidationMessage
+from typing import List
+
+class MyCustomValidator(BaseValidator):
+    def validate(self, ctx: ValidationContext) -> List[ValidationMessage]:
+        messages = []
+        # Your validation logic here
+        if some_condition:
+            messages.append(ValidationMessage(
+                type='error',  # or 'warning'
+                code='my_error_code',
+                message='Something is wrong'
+            ))
+        return messages
+```
+
+### Override Built-in Validators
+
+To override a built-in validator, create a custom validator with the same class name. For example, to override the `EntityNoSourceValidator`:
+
+```python
+# entity_no_source.py (in your validations-dir)
+from metadv.validations.base import BaseValidator, ValidationContext, ValidationMessage
+from typing import List
+
+class EntityNoSourceValidator(BaseValidator):
+    """Custom implementation that overrides the built-in validator."""
+    def validate(self, ctx: ValidationContext) -> List[ValidationMessage]:
+        # Your custom logic here
+        return []
+```
 
 ### templates.yml Structure
 

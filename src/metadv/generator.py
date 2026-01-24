@@ -143,6 +143,34 @@ class MetaDVGenerator:
         except Exception:
             return None
 
+    def _read_custom_validations_dir(self) -> Optional[Path]:
+        """
+        Read validations-dir from metadv.yml if it exists.
+
+        Returns:
+            Path to custom validations directory, or None if not configured
+        """
+        if not self.metadv_yml_path.exists():
+            return None
+
+        try:
+            with open(self.metadv_yml_path, "r", encoding="utf-8") as f:
+                content = yaml.safe_load(f)
+
+            metadv_section = content.get("metadv", {}) or {}
+            validations_dir = metadv_section.get("validations-dir")
+
+            if validations_dir:
+                # Resolve relative to project path
+                validations_path = Path(validations_dir)
+                if not validations_path.is_absolute():
+                    validations_path = self.project_path / validations_path
+                return validations_path.resolve()
+
+            return None
+        except Exception:
+            return None
+
     def read(self) -> Tuple[bool, Optional[str], Optional[MetaDVData]]:
         """
         Read and parse metadv.yml file.
@@ -198,9 +226,10 @@ class MetaDVGenerator:
         """
         Validate metadv.yml configuration using auto-discovered validators.
 
-        Validators are automatically discovered from the validations folder.
-        To add a new validation, create a new file in backend/metadv/validations/
-        with a class that inherits from BaseValidator.
+        Validators are automatically discovered from the validations folder
+        and optionally from a custom validations-dir specified in metadv.yml.
+        Custom validators with the same class name as built-in ones will
+        override the built-in validators.
 
         Returns a ValidationResult with errors and warnings.
         """
@@ -219,8 +248,11 @@ class MetaDVGenerator:
             # Build validation context
             ctx = self._build_validation_context(content)
 
-            # Run all auto-discovered validators
-            messages = run_validations(ctx)
+            # Read custom validations directory from metadv.yml
+            custom_validations_dir = self._read_custom_validations_dir()
+
+            # Run all auto-discovered validators (built-in + custom)
+            messages = run_validations(ctx, custom_validations_dir)
 
             # Separate errors and warnings
             errors = [m for m in messages if m.type == "error"]
