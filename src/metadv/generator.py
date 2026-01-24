@@ -447,13 +447,13 @@ class MetaDVGenerator:
             )
             generated_files.extend(relation_files)
 
-            # 3. Generate entity source-target models
+            # 3. Generate entity source-target models (hub sats, scd)
             entity_source_target_files = self._entity_source_target_generator.generate(
                 output_dir, source_models, targets_by_name
             )
             generated_files.extend(entity_source_target_files)
 
-            # 4. Generate relation source-target models
+            # 4. Generate relation source-target models (link sats, scd)
             relation_source_target_files = self._relation_source_target_generator.generate(
                 output_dir, source_models, targets_by_name
             )
