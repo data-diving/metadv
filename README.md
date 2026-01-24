@@ -1,11 +1,11 @@
 # metadv - Metadata-Driven Model Generator
 
-metadv is a Python library for generating SQL models from a declarative YAML configuration. It supports multiple data modeling approaches including Data Vault 2.0 and Dimensional Modeling, with template packages for popular dbt libraries.
+metadv is a Python library for generating SQL models from a declarative YAML configuration. It supports multiple data modeling approaches including Data Vault 2.0, Anchor Modeling, and Dimensional Modeling, with template packages for popular dbt libraries.
 
 ## Features
 
 - **Declarative Configuration**: Define your data model structure in a single YAML file
-- **Multiple Modeling Approaches**: Support for Data Vault 2.0 and Dimensional Modeling
+- **Multiple Modeling Approaches**: Support for Data Vault 2.0, Anchor Modeling, and Dimensional Modeling
 - **Template Packages**: Works with automate_dv, datavault4dbt, and dimensional templates
 - **Custom Templates**: Add your own template packages for different frameworks
 - **Validation**: Validates your configuration before generating models
@@ -32,12 +32,6 @@ See [sample_metadv.yml](sample_metadv.yml) for a complete example configuration.
 ```bash
 # Generate Data Vault models using automate_dv
 metadv /path/to/dbt/project --package datavault-uk/automate_dv
-
-# Generate Data Vault models using datavault4dbt
-metadv /path/to/dbt/project --package scalefreecom/datavault4dbt
-
-# Generate Dimensional models
-metadv /path/to/dbt/project --package dimensional
 
 # Validate only (don't generate)
 metadv /path/to/dbt/project --package datavault-uk/automate_dv --validate-only
@@ -315,7 +309,8 @@ source:
 |-------|-----------|-------------|
 | `entity` | TargetGenerator | One file per entity target |
 | `relation` | TargetGenerator | One file per relation target |
-| `source` | SourceTargetGenerator | One file per source-target pair (for satellites) |
+| `source` | SourceTargetGenerator | One file per source-target pair |
+| `attribute` | AttributeGenerator | One file per individual attribute |
 | `source` (in source domain) | SourceGenerator | One file per source model (for staging) |
 
 ### Built-in Conditions
@@ -334,6 +329,8 @@ Templates receive context variables based on their scope. Use Python `${variable
 **Relation scope:** `relation_name`, `entities`, `source_refs`, `fk_columns`
 
 **Source scope (source-target):** `source_name`, `source_model`, `entity_name`/`relation_name`, `attributes`, `key_column`, `columns`
+
+**Attribute scope:** `entity_name`/`relation_name`, `source_name`, `source_model`, `attribute_name`, `column`, `key_column`
 
 **Source scope (source):** `source_name`, `columns`
 

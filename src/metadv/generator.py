@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from .generators import SourceGenerator, SourceTargetGenerator, TargetGenerator
+from .generators import AttributeGenerator, SourceGenerator, SourceTargetGenerator, TargetGenerator
 from .validations import ValidationContext, ValidationMessage, run_validations
 
 
@@ -102,7 +102,7 @@ class MetaDVGenerator:
         # Initialize domain-based generators with optional custom templates directory
         kwargs = {"custom_templates_dir": custom_templates_dir} if custom_templates_dir else {}
 
-        # Target-level: one file per target (hub, link, dim, fact)
+        # Target-level: one file per target (hub, link, dim, fact, anchor, tie)
         self._entity_generator = TargetGenerator(self.package_name, "entity", **kwargs)
         self._relation_generator = TargetGenerator(self.package_name, "relation", **kwargs)
         # Source-target level: one file per source-target pair (sat, SCD targets)
@@ -110,6 +110,11 @@ class MetaDVGenerator:
             self.package_name, "entity", **kwargs
         )
         self._relation_source_target_generator = SourceTargetGenerator(
+            self.package_name, "relation", **kwargs
+        )
+        # Attribute-level: one file per individual attribute (Anchor Modeling)
+        self._entity_attribute_generator = AttributeGenerator(self.package_name, "entity", **kwargs)
+        self._relation_attribute_generator = AttributeGenerator(
             self.package_name, "relation", **kwargs
         )
         # Source-level: one file per source (stage)
@@ -442,19 +447,31 @@ class MetaDVGenerator:
             )
             generated_files.extend(relation_files)
 
-            # 3. Generate entity source-target models
+            # 3. Generate entity source-target models (hub sats, scd)
             entity_source_target_files = self._entity_source_target_generator.generate(
                 output_dir, source_models, targets_by_name
             )
             generated_files.extend(entity_source_target_files)
 
-            # 4. Generate relation source-target models
+            # 4. Generate relation source-target models (link sats, scd)
             relation_source_target_files = self._relation_source_target_generator.generate(
                 output_dir, source_models, targets_by_name
             )
             generated_files.extend(relation_source_target_files)
 
-            # 5. Generate source models (stage)
+            # 5. Generate entity attribute models (Anchor Modeling)
+            entity_attribute_files = self._entity_attribute_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(entity_attribute_files)
+
+            # 6. Generate relation attribute models (Anchor Modeling)
+            relation_attribute_files = self._relation_attribute_generator.generate(
+                output_dir, source_models, targets_by_name
+            )
+            generated_files.extend(relation_attribute_files)
+
+            # 7. Generate source models (stage)
             source_files = self._source_generator.generate(
                 output_dir, source_models, targets_by_name
             )
