@@ -96,17 +96,52 @@ class MetaDVGenerator:
         self._raw_content: Optional[Dict[str, Any]] = None
         self.package_name = package_name
 
-        # Initialize domain-based generators
+        # Read custom templates directory from metadv.yml if it exists
+        custom_templates_dir = self._read_custom_templates_dir()
+
+        # Initialize domain-based generators with optional custom templates directory
+        kwargs = {"custom_templates_dir": custom_templates_dir} if custom_templates_dir else {}
+
         # Target-level: one file per target (hub, link, dim, fact)
-        self._entity_generator = TargetGenerator(self.package_name, "entity")
-        self._relation_generator = TargetGenerator(self.package_name, "relation")
+        self._entity_generator = TargetGenerator(self.package_name, "entity", **kwargs)
+        self._relation_generator = TargetGenerator(self.package_name, "relation", **kwargs)
         # Source-target level: one file per source-target pair (sat, SCD targets)
-        self._entity_source_target_generator = SourceTargetGenerator(self.package_name, "entity")
+        self._entity_source_target_generator = SourceTargetGenerator(
+            self.package_name, "entity", **kwargs
+        )
         self._relation_source_target_generator = SourceTargetGenerator(
-            self.package_name, "relation"
+            self.package_name, "relation", **kwargs
         )
         # Source-level: one file per source (stage)
-        self._source_generator = SourceGenerator(self.package_name)
+        self._source_generator = SourceGenerator(self.package_name, **kwargs)
+
+    def _read_custom_templates_dir(self) -> Optional[Path]:
+        """
+        Read templates-dir from metadv.yml if it exists.
+
+        Returns:
+            Path to custom templates directory, or None if not configured
+        """
+        if not self.metadv_yml_path.exists():
+            return None
+
+        try:
+            with open(self.metadv_yml_path, "r", encoding="utf-8") as f:
+                content = yaml.safe_load(f)
+
+            metadv_section = content.get("metadv", {}) or {}
+            templates_dir = metadv_section.get("templates-dir")
+
+            if templates_dir:
+                # Resolve relative to project path
+                templates_path = Path(templates_dir)
+                if not templates_path.is_absolute():
+                    templates_path = self.project_path / templates_path
+                return templates_path.resolve()
+
+            return None
+        except Exception:
+            return None
 
     def read(self) -> Tuple[bool, Optional[str], Optional[MetaDVData]]:
         """

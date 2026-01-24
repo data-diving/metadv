@@ -87,6 +87,9 @@ else:
 
 ```yaml
 metadv:
+  # Optional: custom templates directory (relative to project root or absolute)
+  templates-dir: ./my-templates
+
   # Define your targets (entities and relations)
   targets:
     - name: customer
@@ -132,6 +135,14 @@ metadv:
             - attribute_of: order
               multiactive_key: true  # Mark as multiactive key
 ```
+
+### metadv Section Options
+
+| Field | Description |
+|-------|-------------|
+| `templates-dir` | Optional path to custom templates directory (relative to project root or absolute). Templates here take precedence over built-in templates. |
+| `targets` | Array of target definitions (entities and relations) |
+| `sources` | Array of source model definitions with column mappings |
 
 ### Target Types
 
@@ -191,10 +202,12 @@ Run with `--validate-only` to check your configuration without generating files.
 
 ## Custom Template Packages
 
-You can create custom template packages by adding a folder under `src/metadv/templates/` with:
+You can create custom template packages by setting `templates-dir` in your `metadv.yml` to point to a directory containing your templates. This directory should contain package folders with:
 
 1. A `templates.yml` file defining template configurations
 2. SQL template files using Jinja2 and Python string.Template syntax
+
+Templates in your custom directory take precedence over built-in templates with the same package name.
 
 ### templates.yml Structure
 
